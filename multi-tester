@@ -1,0 +1,121 @@
+#!/usr/bin/env python
+# Copyright (C) 2007, Thomas Leonard
+# Visit http://0install.net for details.
+
+from zeroinstall.injector import autopolicy, iface_cache, model, run, handler
+import logging, os, traceback, sys
+from sets import Set
+
+passed = []
+skipped = []
+failed = []
+
+#test_iface = 'http://rox.sourceforge.net/2005/interfaces/Edit'
+#test_main = 'tests/testreplace.py'
+
+#test_iface = 'http://0install.net/2006/interfaces/0compile.xml'
+#test_main = 'tests/testcompile.py'
+
+test_iface = 'http://0install.net/2007/interfaces/0publish-gui.xml'
+test_main = 'tests/testxml.py'
+
+test_wrapper = None
+
+assert not test_main.startswith('/')
+
+class MyHandler(handler.Handler):
+	def wait_for_downloads(self):
+		if self.monitored_downloads:
+			print "Downloading... please wait..."
+		handler.Handler.wait_for_downloads(self)
+
+ap = autopolicy.AutoPolicy(test_iface)
+ap.handler = MyHandler()
+
+def implementations(iface):
+	impls = iface.implementations.values()
+	for f in ap.usable_feeds(iface):
+		debug("Processing feed %s", f)
+		try:
+			feed_iface = ap.get_interface(f.uri)
+			if feed_iface.implementations:
+				impls.extend(feed_iface.implementations.values())
+		except NeedDownload, ex:
+			raise ex
+		except Exception, ex:
+			warn("Failed to load feed %s for %s: %s",
+				f, iface, str(ex))
+
+# Explore all combinations...
+
+class NeverTheSame:
+	def __init__(self):
+		self.already_tested = Set()
+
+	def meets_restriction(self, impl):
+		return impl.id not in self.already_tested
+
+never = NeverTheSame()
+
+ap.root_restrictions.append(never)
+
+tested_iface = iface_cache.iface_cache.get_interface(test_iface)
+
+def _get_implementation_path(id):
+	if id.startswith('/'): return id
+	return iface_cache.iface_cache.stores.lookup(id)
+
+def run_tests(ap):
+	root_impl = ap.get_implementation(tested_iface)
+	main_abs = os.path.join(_get_implementation_path(root_impl.id), test_main)
+	if not os.path.exists(main_abs):
+		print >>sys.stderr, "Test executable does not exist:", main_abs
+		skipped.append(root_impl.get_version())
+		return
+	tests_dir = os.path.dirname(main_abs)
+
+	child = os.fork()
+	if child:
+		# We are the parent
+		pid, status = os.waitpid(child, 0)
+		assert pid == child
+		if status == 0:
+			passed.append(root_impl.get_version())
+		else:
+			failed.append(root_impl.get_version())
+		print "Status:", hex(status)
+	else:
+		# We are the child
+		try:
+			try:
+				os.chdir(tests_dir)
+				run.execute(ap, [], main = '/' + test_main, wrapper = test_wrapper)
+				os._exit(0)
+			except model.SafeException, ex:
+				print >>sys.stderr, str(ex)
+			except:
+				traceback.print_exc()
+		finally:
+			sys.stdout.flush()
+			sys.stderr.flush()
+			os._exit(1)
+
+while True:
+	ap.recalculate_with_dl()
+	if not ap.ready:
+		print "Nothing left to test"
+		break
+
+	ap.start_downloading_impls()
+	ap.handler.wait_for_downloads()
+
+	tested_impl = ap.implementation[tested_iface]
+
+	print "Testing", tested_impl.get_version()
+	run_tests(ap)
+
+	never.already_tested.add(tested_impl.id)
+
+print "Passed  :", ', '.join(passed)
+print "Skipped :", ', '.join(skipped)
+print "Failed  :", ', '.join(failed)
