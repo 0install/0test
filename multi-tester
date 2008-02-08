@@ -2,7 +2,7 @@
 # Copyright (C) 2007, Thomas Leonard
 # Visit http://0install.net for details.
 
-from zeroinstall.injector import autopolicy, iface_cache, model, run, handler
+from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, solver
 import logging, os, traceback, sys
 from sets import Set
 
@@ -10,54 +10,45 @@ passed = []
 skipped = []
 failed = []
 
-#test_iface = 'http://rox.sourceforge.net/2005/interfaces/Edit'
-#test_main = 'tests/testreplace.py'
-
-#test_iface = 'http://0install.net/2006/interfaces/0compile.xml'
-#test_main = 'tests/testcompile.py'
-
-test_iface = 'http://0install.net/2007/interfaces/0publish-gui.xml'
-test_main = 'tests/testxml.py'
-
 test_wrapper = None
+test_iface = 'http://0install.net/2006/interfaces/0compile.xml'
+test_matrix = {
+	'http://0install.net/2006/interfaces/0compile.xml': ['0.10', '0.10-post'],
+	'http://0install.net/2007/interfaces/ZeroInstall.xml': ['0.31', '0.31-post'],
+}
 
-assert not test_main.startswith('/')
+class VersionRestriction(model.Restriction):
+	def __init__(self, version):
+		self.version = version
 
+	def meets_restriction(self, impl):
+		return impl.get_version() == self.version
+	
+	def __repr__(self):
+		return "version = %s" % self.version
+
+def all_combinations():
+	ifaces = test_matrix.keys()
+	def get_combos(ifaces):
+		if not ifaces:
+			yield {}
+			return
+		for version in test_matrix[ifaces[0]]:
+			for combo in get_combos(ifaces[1:]):
+				combo[iface_cache.iface_cache.get_interface(ifaces[0])] = [VersionRestriction(version)]
+				yield combo.copy()
+	for combo in get_combos(ifaces):
+		yield combo
+	
 class MyHandler(handler.Handler):
-	def wait_for_downloads(self):
+	def downloads_changed(self):
 		if self.monitored_downloads:
-			print "Downloading... please wait..."
-		handler.Handler.wait_for_downloads(self)
+			print "Downloading... ", self.monitored_downloads
 
 ap = autopolicy.AutoPolicy(test_iface)
 ap.handler = MyHandler()
 
-def implementations(iface):
-	impls = iface.implementations.values()
-	for f in ap.usable_feeds(iface):
-		debug("Processing feed %s", f)
-		try:
-			feed_iface = ap.get_interface(f.uri)
-			if feed_iface.implementations:
-				impls.extend(feed_iface.implementations.values())
-		except NeedDownload, ex:
-			raise ex
-		except Exception, ex:
-			warn("Failed to load feed %s for %s: %s",
-				f, iface, str(ex))
-
 # Explore all combinations...
-
-class NeverTheSame:
-	def __init__(self):
-		self.already_tested = Set()
-
-	def meets_restriction(self, impl):
-		return impl.id not in self.already_tested
-
-never = NeverTheSame()
-
-ap.root_restrictions.append(never)
 
 tested_iface = iface_cache.iface_cache.get_interface(test_iface)
 
@@ -67,11 +58,24 @@ def _get_implementation_path(id):
 
 def run_tests(ap):
 	root_impl = ap.get_implementation(tested_iface)
+
+	this_combo = []
+	for x in ap.solver.selections:
+		this_combo.append("%s v%s" % (x.get_name(), ap.solver.selections[x].get_version()))
+	this_combo = ' '.join(this_combo)
+	print this_combo
+
+	test_main = root_impl.metadata.get("self-test", None)
+	if not test_main:
+		print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
+		skipped.append(this_combo)
+		return
 	main_abs = os.path.join(_get_implementation_path(root_impl.id), test_main)
 	if not os.path.exists(main_abs):
 		print >>sys.stderr, "Test executable does not exist:", main_abs
-		skipped.append(root_impl.get_version())
+		skipped.append(this_combo)
 		return
+
 	tests_dir = os.path.dirname(main_abs)
 
 	child = os.fork()
@@ -80,9 +84,9 @@ def run_tests(ap):
 		pid, status = os.waitpid(child, 0)
 		assert pid == child
 		if status == 0:
-			passed.append(root_impl.get_version())
+			passed.append(this_combo)
 		else:
-			failed.append(root_impl.get_version())
+			failed.append(this_combo)
 		print "Status:", hex(status)
 	else:
 		# We are the child
@@ -100,21 +104,24 @@ def run_tests(ap):
 			sys.stderr.flush()
 			os._exit(1)
 
-while True:
-	ap.recalculate_with_dl()
+if 'DISPLAY' in os.environ:
+	del os.environ['DISPLAY']
+
+for combo in all_combinations():
+	ap.solver.extra_restrictions = combo
+	solve = ap.solve_with_downloads()
+	ap.handler.wait_for_blocker(solve)
 	if not ap.ready:
 		print "Nothing left to test"
 		break
 
-	ap.start_downloading_impls()
-	ap.handler.wait_for_downloads()
+	download = ap.download_uncached_implementations()
+	if download:
+		ap.handler.wait_for_blocker(download)
 
 	tested_impl = ap.implementation[tested_iface]
 
-	print "Testing", tested_impl.get_version()
 	run_tests(ap)
-
-	never.already_tested.add(tested_impl.id)
 
 print "Passed  :", ', '.join(passed)
 print "Skipped :", ', '.join(skipped)
