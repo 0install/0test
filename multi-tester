@@ -13,8 +13,8 @@ failed = []
 test_wrapper = None
 test_iface = 'http://0install.net/2006/interfaces/0compile.xml'
 test_matrix = {
-	'http://0install.net/2006/interfaces/0compile.xml': ['0.10', '0.10-post'],
-	'http://0install.net/2007/interfaces/ZeroInstall.xml': ['0.31', '0.31-post'],
+	'http://0install.net/2006/interfaces/0compile.xml': ['0.10', '0.12', '0.12-post'],
+	'http://0install.net/2007/interfaces/ZeroInstall.xml': ['0.31', '0.36-post'],
 }
 
 class VersionRestriction(model.Restriction):
@@ -112,8 +112,9 @@ for combo in all_combinations():
 	solve = ap.solve_with_downloads()
 	ap.handler.wait_for_blocker(solve)
 	if not ap.ready:
-		print "Nothing left to test"
-		break
+		print "Failed to find a valid set of selections for", combo
+		skipped.append(' '.join('%s %s' % (iface.get_name(), restrictions[0]) for iface, restrictions in combo.items()))
+		continue
 
 	download = ap.download_uncached_implementations()
 	if download:
