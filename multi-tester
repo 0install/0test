@@ -4,18 +4,69 @@
 
 from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, solver
 import logging, os, traceback, sys
+from optparse import OptionParser
 from sets import Set
+
+version = '0.1'
+
+parser = OptionParser(usage="usage: %prog [INTERFACE:VERSION ...] ...\n\n"
+		"For example, to test three versions of 0compile against two versions of Zero Install:\n\n"
+		"0test http://0install.net/2006/interfaces/0compile.xml 0.10 0.12 0.12-post \\\n"
+		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.31 0.36")
+
+parser.add_option("-v", "--verbose", help="more verbose output", action='count')
+parser.add_option("-V", "--version", help="display version information", action='store_true')
+
+(options, args) = parser.parse_args()
+
+if not args:
+	parser.print_help()
+	sys.exit(1)
+
+if options.version:
+	print "0test (zero-install) " + version
+	print "Copyright (C) 2008 Thomas Leonard"
+	print "This program comes with ABSOLUTELY NO WARRANTY,"
+	print "to the extent permitted by law."
+	print "You may redistribute copies of this program"
+	print "under the terms of the GNU General Public License."
+	print "For more information about these matters, see the file named COPYING."
+	sys.exit(0)
+
+if options.verbose:
+	import logging
+	logger = logging.getLogger()
+	if options.verbose == 1:
+		logger.setLevel(logging.INFO)
+	else:
+		logger.setLevel(logging.DEBUG)
 
 passed = []
 skipped = []
 failed = []
 
+test_iface = None
 test_wrapper = None
-test_iface = 'http://0install.net/2006/interfaces/0compile.xml'
-test_matrix = {
-	'http://0install.net/2006/interfaces/0compile.xml': ['0.10', '0.12', '0.12-post'],
-	'http://0install.net/2007/interfaces/ZeroInstall.xml': ['0.31', '0.36-post'],
-}
+test_matrix = {}
+
+iface = None
+for x in args:
+	if x[0].isdigit() and iface:
+		test_matrix[iface].append(x)
+	else:
+		if iface and not test_matrix[iface]:
+			raise Exception("No versions given for interface %s" % iface)
+		assert x not in test_matrix, "Interface %s given twice!" % x
+		iface = model.canonical_iface_uri(x)
+		test_matrix[iface] = []
+		if not test_iface:
+			test_iface = iface
+
+if not test_matrix[test_iface]:
+	del test_matrix[test_iface]
+
+if iface != test_iface and not test_matrix[iface]:
+	raise Exception("No versions given for interface %s" % iface)
 
 class VersionRestriction(model.Restriction):
 	def __init__(self, version):
