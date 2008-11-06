@@ -54,7 +54,7 @@ for x in args:
 	if x[0].isdigit() and iface:
 		test_matrix[iface].append(x)
 	else:
-		if iface and not test_matrix[iface]:
+		if iface and iface != test_iface and not test_matrix[iface]:
 			raise Exception("No versions given for interface %s" % iface)
 		assert x not in test_matrix, "Interface %s given twice!" % x
 		iface = model.canonical_iface_uri(x)
