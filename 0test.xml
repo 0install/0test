@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+  <name>0test</name>
+  <summary>test Zero Install programs</summary>
+  <description>
+Use 0test to run the unit tests for a Zero Install program. You can use this to
+test released versions or developer snapshots. You can give a selection of
+versions to test, and you can test against different versions of dependencies to
+create a matrix of test results.</description>
+
+  <homepage>http://0install.net/0test.html</homepage>
+
+  <feed-for interface="http://0install.net/2008/interfaces/0test.xml"/>
+
+  <release:management xmlns:release="http://zero-install.sourceforge.net/2007/namespaces/0release">
+    <!-- Update the copy of the version number -->
+    <release:action phase="commit-release">sed -i &quot;s/^version = '.*'$/version = '$RELEASE_VERSION'/&quot; multi-tester</release:action>
+  </release:management>
+  <category>Development</category>
+  <needs-terminal/>
+
+  <group license="OSI Approved :: GNU General Public License v2" main="multi-tester">
+    <implementation id="." version="0.1" version-modifier="-pre"/>
+  </group>
+</interface>
