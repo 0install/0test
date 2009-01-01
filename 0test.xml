@@ -15,12 +15,12 @@ create a matrix of test results.</description>
 
   <release:management xmlns:release="http://zero-install.sourceforge.net/2007/namespaces/0release">
     <!-- Update the copy of the version number -->
-    <release:action phase="commit-release">sed -i &quot;s/^version = '.*'$/version = '$RELEASE_VERSION'/&quot; multi-tester</release:action>
+    <release:action phase="commit-release">sed -i &quot;s/^version = '.*'$/version = '$RELEASE_VERSION'/&quot; 0test</release:action>
   </release:management>
   <category>Development</category>
   <needs-terminal/>
 
-  <group license="OSI Approved :: GNU General Public License v2" main="multi-tester">
+  <group license="OSI Approved :: GNU General Public License v2" main="0test">
     <implementation id="." version="0.1-post"/>
   </group>
 </interface>

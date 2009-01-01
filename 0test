@@ -9,7 +9,7 @@ from sets import Set
 
 version = '0.1'
 
-parser = OptionParser(usage="usage: %prog [INTERFACE:VERSION ...] ...\n\n"
+parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"For example, to test three versions of 0compile against two versions of Zero Install:\n\n"
 		"0test http://0install.net/2006/interfaces/0compile.xml 0.10 0.12 0.12-post \\\n"
 		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.31 0.36")
