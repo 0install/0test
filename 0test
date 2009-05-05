@@ -19,10 +19,6 @@ parser.add_option("-V", "--version", help="display version information", action=
 
 (options, args) = parser.parse_args()
 
-if not args:
-	parser.print_help()
-	sys.exit(1)
-
 if options.version:
 	print "0test (zero-install) " + version
 	print "Copyright (C) 2008 Thomas Leonard"
@@ -32,6 +28,10 @@ if options.version:
 	print "under the terms of the GNU General Public License."
 	print "For more information about these matters, see the file named COPYING."
 	sys.exit(0)
+
+if not args:
+	parser.print_help()
+	sys.exit(1)
 
 if options.verbose:
 	import logging
