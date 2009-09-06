@@ -14,6 +14,7 @@ parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"0test http://0install.net/2006/interfaces/0compile.xml 0.10 0.12 0.12-post \\\n"
 		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.31 0.36")
 
+parser.add_option("-t", "--test-command", help="specify a custom test command", action='store', metavar='CMD')
 parser.add_option("-v", "--verbose", help="more verbose output", action='count')
 parser.add_option("-V", "--version", help="display version information", action='store_true')
 
@@ -46,8 +47,11 @@ skipped = []
 failed = []
 
 test_iface = None
-test_wrapper = None
+test_wrapper = options.test_command
 test_matrix = {}
+
+if test_wrapper:
+	test_wrapper += ' #'
 
 iface = None
 for x in args:
@@ -116,18 +120,23 @@ def run_tests(ap):
 	this_combo = ' '.join(this_combo)
 	print this_combo
 
-	test_main = root_impl.metadata.get("self-test", None)
-	if not test_main:
-		print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
-		skipped.append(this_combo)
-		return
-	main_abs = os.path.join(_get_implementation_path(root_impl.id), test_main)
-	if not os.path.exists(main_abs):
-		print >>sys.stderr, "Test executable does not exist:", main_abs
-		skipped.append(this_combo)
-		return
+	if test_wrapper:
+		tests_dir = None
+		test_main = None
+	else:
+		test_main = root_impl.metadata.get("self-test", None)
+		if not test_main:
+			print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
+			skipped.append(this_combo)
+			return
+		main_abs = os.path.join(_get_implementation_path(root_impl.id), test_main)
+		if not os.path.exists(main_abs):
+			print >>sys.stderr, "Test executable does not exist:", main_abs
+			skipped.append(this_combo)
+			return
 
-	tests_dir = os.path.dirname(main_abs)
+		tests_dir = os.path.dirname(main_abs)
+		test_main = '/' + test_main
 
 	child = os.fork()
 	if child:
@@ -143,8 +152,9 @@ def run_tests(ap):
 		# We are the child
 		try:
 			try:
-				os.chdir(tests_dir)
-				run.execute(ap, [], main = '/' + test_main, wrapper = test_wrapper)
+				if test_wrapper is None:
+					os.chdir(tests_dir)
+				run.execute(ap, [], main = test_main, wrapper = test_wrapper)
 				os._exit(0)
 			except model.SafeException, ex:
 				print >>sys.stderr, str(ex)
@@ -155,7 +165,7 @@ def run_tests(ap):
 			sys.stderr.flush()
 			os._exit(1)
 
-if 'DISPLAY' in os.environ:
+if 'DISPLAY' in os.environ and not test_wrapper:
 	del os.environ['DISPLAY']
 
 for combo in all_combinations():
