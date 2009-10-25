@@ -2,10 +2,9 @@
 # Copyright (C) 2008, Thomas Leonard
 # Visit http://0install.net for details.
 
-from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, solver
-import logging, os, traceback, sys
+from zeroinstall.injector import autopolicy, iface_cache, model, run, handler
+import os, traceback, sys
 from optparse import OptionParser
-from sets import Set
 
 version = '0.1'
 
