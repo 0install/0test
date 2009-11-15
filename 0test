@@ -97,7 +97,7 @@ def all_combinations():
 class MyHandler(handler.Handler):
 	def downloads_changed(self):
 		if self.monitored_downloads:
-			print "Downloading... ", self.monitored_downloads
+			print "Downloading... ", ', '.join(self.monitored_downloads.keys())
 
 class TestingArchitecture(arch.Architecture):
 	use = frozenset([None, "testing"])
