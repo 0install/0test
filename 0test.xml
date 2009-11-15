@@ -21,6 +21,6 @@ create a matrix of test results.</description>
   <needs-terminal/>
 
   <group license="OSI Approved :: GNU General Public License v2" main="0test">
-    <implementation id="." version="0.1-post"/>
+    <implementation id="." released="2009-11-15" version="0.2"/>
   </group>
 </interface>

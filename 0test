@@ -6,7 +6,7 @@ from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, a
 import os, traceback, sys
 from optparse import OptionParser
 
-version = '0.1'
+version = '0.2'
 
 parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"For example, to test three versions of 0compile against two versions of Zero Install:\n\n"
