@@ -2,9 +2,12 @@
 # Copyright (C) 2008, Thomas Leonard
 # Visit http://0install.net for details.
 
-from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
 import os, traceback, sys
 from optparse import OptionParser
+
+sys.path.insert(0, os.environ["0TEST_ZEROINSTALL"])
+
+from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
 
 version = '0.2'
 
