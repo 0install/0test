@@ -195,3 +195,6 @@ for combo in all_combinations():
 print "Passed  :", ', '.join(passed)
 print "Skipped :", ', '.join(skipped)
 print "Failed  :", ', '.join(failed)
+
+if failed:
+	sys.exit(1)
