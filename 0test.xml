@@ -23,6 +23,7 @@ create a matrix of test results.</description>
   <group license="OSI Approved :: GNU General Public License v2" main="0test">
     <implementation id="." version="0.2-post"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
+      <version not-before='0.46'/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
     </requires>
   </group>

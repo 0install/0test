@@ -117,9 +117,8 @@ ap.handler = MyHandler()
 
 tested_iface = iface_cache.iface_cache.get_interface(test_iface)
 
-def _get_implementation_path(id):
-	if id.startswith('/'): return id
-	return iface_cache.iface_cache.stores.lookup(id)
+def _get_implementation_path(impl):
+	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
 
 def run_tests(ap):
 	root_impl = ap.get_implementation(tested_iface)
@@ -139,7 +138,7 @@ def run_tests(ap):
 			print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
 			skipped.append(this_combo)
 			return
-		main_abs = os.path.join(_get_implementation_path(root_impl.id), test_main)
+		main_abs = os.path.join(_get_implementation_path(root_impl), test_main)
 		if not os.path.exists(main_abs):
 			print >>sys.stderr, "Test executable does not exist:", main_abs
 			skipped.append(this_combo)
