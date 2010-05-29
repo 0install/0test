@@ -48,7 +48,7 @@ passed = []
 skipped = []
 failed = []
 
-test_iface = None
+test_ifaces = []
 test_wrapper = options.test_command
 test_matrix = {}
 
@@ -60,19 +60,20 @@ for x in args:
 	if x[0].isdigit() and iface:
 		test_matrix[iface].append(x)
 	else:
-		if iface and iface != test_iface and not test_matrix[iface]:
-			raise Exception("No versions given for interface %s" % iface)
 		assert x not in test_matrix, "Interface %s given twice!" % x
 		iface = model.canonical_iface_uri(x)
 		test_matrix[iface] = []
-		if not test_iface:
-			test_iface = iface
+		test_ifaces.append(iface)
 
+# We don't need to specify the version of the interface under test.
+test_iface = test_ifaces[0]
 if not test_matrix[test_iface]:
 	del test_matrix[test_iface]
 
-if iface != test_iface and not test_matrix[iface]:
-	raise Exception("No versions given for interface %s" % iface)
+# We do need a version for all the others (else what was the point of listing them?)
+for iface in test_ifaces[1:]:
+	if not test_matrix[iface]:
+		raise Exception("No versions given for interface %s" % iface)
 
 class VersionRestriction(model.Restriction):
 	def __init__(self, version):
@@ -84,18 +85,20 @@ class VersionRestriction(model.Restriction):
 	def __repr__(self):
 		return "version = %s" % self.version
 
+def get_combos(ifaces):
+	if not ifaces:
+		yield {}
+		return
+	for version in test_matrix[ifaces[0]]:
+		for combo in get_combos(ifaces[1:]):
+			combo[iface_cache.iface_cache.get_interface(ifaces[0])] = [VersionRestriction(version)]
+			yield combo.copy()
+
 def all_combinations():
-	ifaces = test_matrix.keys()
-	def get_combos(ifaces):
-		if not ifaces:
-			yield {}
-			return
-		for version in test_matrix[ifaces[0]]:
-			for combo in get_combos(ifaces[1:]):
-				combo[iface_cache.iface_cache.get_interface(ifaces[0])] = [VersionRestriction(version)]
-				yield combo.copy()
-	for combo in get_combos(ifaces):
-		yield combo
+	if test_iface in test_matrix:
+		return get_combos(test_ifaces)
+	else:
+		return get_combos(test_ifaces[1:])
 
 class MyHandler(handler.Handler):
 	def downloads_changed(self):
@@ -126,7 +129,7 @@ def run_tests(ap):
 	this_combo = []
 	for x in ap.solver.selections:
 		this_combo.append("%s v%s" % (x.get_name(), ap.solver.selections[x].get_version()))
-	this_combo = ' '.join(this_combo)
+	this_combo = ', '.join(this_combo)
 	print this_combo
 
 	if test_wrapper:
@@ -194,9 +197,19 @@ for combo in all_combinations():
 
 	run_tests(ap)
 
-print "Passed  :", ', '.join(passed)
-print "Skipped :", ', '.join(skipped)
-print "Failed  :", ', '.join(failed)
+def format(label, results):
+	if not results:
+		print "None", label
+	else:
+		print label.capitalize()
+		for combo in results:
+			print " - " + combo
+
+print "\nSUMMARY:\n"
+
+format("passed", passed)
+format("skipped", skipped)
+format("failed", failed)
 
 if failed:
 	sys.exit(1)
