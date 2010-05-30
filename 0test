@@ -16,6 +16,7 @@ parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"0test http://0install.net/2006/interfaces/0compile.xml 0.10 0.12 0.12-post \\\n"
 		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.31 0.36")
 
+parser.add_option("", "--html", help="write results as HTML", action='store', metavar='OUTPUT')
 parser.add_option("-t", "--test-command", help="specify a custom test command", action='store', metavar='CMD')
 parser.add_option("-v", "--verbose", help="more verbose output", action='count')
 parser.add_option("-V", "--version", help="display version information", action='store_true')
@@ -44,10 +45,6 @@ if options.verbose:
 	else:
 		logger.setLevel(logging.DEBUG)
 
-passed = []
-skipped = []
-failed = []
-
 test_ifaces = []
 test_wrapper = options.test_command
 test_matrix = {}
@@ -69,6 +66,11 @@ for x in args:
 test_iface = test_ifaces[0]
 if not test_matrix[test_iface]:
 	del test_matrix[test_iface]
+	del test_ifaces[0]
+
+if options.html and len(test_ifaces) < 2:
+	print >>sys.stderr, "Need versions for at least two interfaces for --html mode."
+	sys.exit(1)
 
 # We do need a version for all the others (else what was the point of listing them?)
 for iface in test_ifaces[1:]:
@@ -85,20 +87,18 @@ class VersionRestriction(model.Restriction):
 	def __repr__(self):
 		return "version = %s" % self.version
 
+# Yield a sequence of set((uri, version)), one for each combination to test
 def get_combos(ifaces):
 	if not ifaces:
 		yield {}
 		return
 	for version in test_matrix[ifaces[0]]:
 		for combo in get_combos(ifaces[1:]):
-			combo[iface_cache.iface_cache.get_interface(ifaces[0])] = [VersionRestriction(version)]
+			combo[ifaces[0]] = version
 			yield combo.copy()
 
 def all_combinations():
-	if test_iface in test_matrix:
-		return get_combos(test_ifaces)
-	else:
-		return get_combos(test_ifaces[1:])
+	return get_combos(test_ifaces)
 
 class MyHandler(handler.Handler):
 	def downloads_changed(self):
@@ -123,14 +123,21 @@ tested_iface = iface_cache.iface_cache.get_interface(test_iface)
 def _get_implementation_path(impl):
 	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
 
+def format_combo(selections):
+	this_combo = []
+	for x in selections:
+		impl = selections[x]
+		if impl:
+			version = impl.get_version()
+		else:
+			version = '(none)'
+		this_combo.append("%s v%s" % (x.get_name(), version))
+	return ', '.join(this_combo)
+
 def run_tests(ap):
 	root_impl = ap.get_implementation(tested_iface)
 
-	this_combo = []
-	for x in ap.solver.selections:
-		this_combo.append("%s v%s" % (x.get_name(), ap.solver.selections[x].get_version()))
-	this_combo = ', '.join(this_combo)
-	print this_combo
+	print format_combo(ap.solver.selections)
 
 	if test_wrapper:
 		tests_dir = None
@@ -139,13 +146,11 @@ def run_tests(ap):
 		test_main = root_impl.metadata.get("self-test", None)
 		if not test_main:
 			print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
-			skipped.append(this_combo)
-			return
+			return "skipped"
 		main_abs = os.path.join(_get_implementation_path(root_impl), test_main)
 		if not os.path.exists(main_abs):
 			print >>sys.stderr, "Test executable does not exist:", main_abs
-			skipped.append(this_combo)
-			return
+			return "skipped"
 
 		tests_dir = os.path.dirname(main_abs)
 		test_main = '/' + test_main
@@ -155,11 +160,11 @@ def run_tests(ap):
 		# We are the parent
 		pid, status = os.waitpid(child, 0)
 		assert pid == child
-		if status == 0:
-			passed.append(this_combo)
-		else:
-			failed.append(this_combo)
 		print "Status:", hex(status)
+		if status == 0:
+			return "passed"
+		else:
+			return "failed"
 	else:
 		# We are the child
 		try:
@@ -180,36 +185,147 @@ def run_tests(ap):
 if 'DISPLAY' in os.environ and not test_wrapper:
 	del os.environ['DISPLAY']
 
+results_by_combo = {}		# { set((uri, version)) : status }
+results_by_status = {		# status -> [ selections ]
+	'passed': [],
+	'skipped': [],
+	'failed': [],
+}
+
 for combo in all_combinations():
-	ap.solver.extra_restrictions = combo
+	key = set()
+	restrictions = {}
+	for (uri, version) in combo.iteritems():
+		restrictions[iface_cache.iface_cache.get_interface(uri)] = [VersionRestriction(version)]
+		key.add((uri, version))
+
+	ap.solver.extra_restrictions = restrictions
 	solve = ap.solve_with_downloads()
 	ap.handler.wait_for_blocker(solve)
 	if not ap.ready:
-		print "Failed to find a valid set of selections for", combo
-		skipped.append(' '.join('%s %s' % (iface.get_name(), restrictions[0]) for iface, restrictions in combo.items()))
-		continue
+		result = 'skipped'
+	else:
+		download = ap.download_uncached_implementations()
+		if download:
+			ap.handler.wait_for_blocker(download)
 
-	download = ap.download_uncached_implementations()
-	if download:
-		ap.handler.wait_for_blocker(download)
+		tested_impl = ap.implementation[tested_iface]
 
-	tested_impl = ap.implementation[tested_iface]
+		result = run_tests(ap)
 
-	run_tests(ap)
+	selections = ap.solver.selections.copy()
+	results_by_status[result].append(selections)
+	results_by_combo[frozenset(key)] = (result, selections)
 
-def format(label, results):
+print "\nSUMMARY:\n"
+
+for label in ["passed", "skipped", "failed"]:
+	results = results_by_status[label]
 	if not results:
 		print "None", label
 	else:
 		print label.capitalize()
 		for combo in results:
-			print " - " + combo
+			print " - " + format_combo(combo)
 
-print "\nSUMMARY:\n"
+html_file = options.html
 
-format("passed", passed)
-format("skipped", skipped)
-format("failed", failed)
+if html_file:
+	from xml.dom import minidom
+	doc = minidom.parseString("<div/>")
+	root = doc.documentElement
 
-if failed:
+	head = doc.createElement('head')
+	root.appendChild(head)
+	style = doc.createElement('style')
+	head.appendChild(style)
+	style.setAttribute('type', "text/css")
+	style.appendChild(doc.createTextNode("""
+		table.testresults {
+			border: 1px solid black;
+			background: white;
+			color: white;
+		}
+
+		table.testresults th {
+			text-align: left;
+			background: #888;
+		}
+
+		table.testresults td.passed {
+			white-space: pre;
+		}
+
+		table.testresults td.passed {
+			background: green;
+		}
+
+		table.testresults td.skipped {
+			background: yellow;
+		}
+
+		table.testresults td.failed {
+			background: red;
+		}
+	"""))
+
+	for outer_combo in get_combos(test_ifaces[:-2]):
+		outer_key = frozenset(outer_combo.items())
+		outers = [(iface_cache.iface_cache.get_feed(uri).get_name() + " " + version) for (uri, version) in outer_combo.iteritems()]
+		heading = doc.createElement('h1')
+		heading.appendChild(doc.createTextNode(', '.join(outers) or 'Results'))
+		root.appendChild(heading)
+
+		body = doc.createElement('body')
+		root.appendChild(body)
+
+		table = doc.createElement('table')
+		table.setAttribute('class', 'testresults')
+		body.appendChild(table)
+
+		col_iface_uri = test_ifaces[-1]
+		row_iface_uri = test_ifaces[-2]
+
+		col_iface = iface_cache.iface_cache.get_interface(col_iface_uri)
+		row_iface = iface_cache.iface_cache.get_interface(row_iface_uri)
+
+		row = doc.createElement('tr')
+		table.appendChild(row)
+		th = doc.createElement('th')
+		row.appendChild(th)
+		th.appendChild(doc.createTextNode(row_iface.get_name() + "\\" + col_iface.get_name()))
+		for col_iface_version in test_matrix[col_iface_uri]:
+			th = doc.createElement('th')
+			row.appendChild(th)
+			th.appendChild(doc.createTextNode(col_iface_version))
+
+		for row_iface_version in test_matrix[row_iface_uri]:
+			table.appendChild(doc.createTextNode('\n'))
+			row = doc.createElement('tr')
+			table.appendChild(row)
+			th = doc.createElement('th')
+			row.appendChild(th)
+			th.appendChild(doc.createTextNode(row_iface_version))
+			for col_iface in get_combos([test_ifaces[-1]]):
+				td = doc.createElement('td')
+				row.appendChild(td)
+				key = frozenset(outer_key | set([(row_iface_uri, row_iface_version), (col_iface_uri, col_iface_version)]))
+
+				result, selections = results_by_combo[key]
+				td.setAttribute('class', result)
+
+				other_ifaces = []
+				combo_ifaces = set(uri for (uri, version) in key)
+				for iface, impl in selections.iteritems():
+					if iface.uri not in combo_ifaces:
+						other_ifaces.append((iface.get_name(), impl.get_version()))
+				if other_ifaces:
+					td.appendChild(doc.createTextNode('\n'.join('%s %s' % (uri, version) for uri, version in other_ifaces)))
+		table.appendChild(doc.createTextNode('\n'))
+
+	stream = open(html_file, 'w')
+	doc.writexml(stream, encoding = 'utf8')
+	stream.close()
+
+if results_by_status['failed']:
 	sys.exit(1)
