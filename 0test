@@ -110,11 +110,6 @@ def get_combos(ifaces):
 def all_combinations():
 	return get_combos(test_ifaces)
 
-class MyHandler(handler.Handler):
-	def downloads_changed(self):
-		if self.monitored_downloads:
-			print "Downloading... ", ', '.join(self.monitored_downloads.keys())
-
 class TestingArchitecture(arch.Architecture):
 	use = frozenset([None, "testing"])
 
@@ -124,7 +119,9 @@ class TestingArchitecture(arch.Architecture):
 
 ap = autopolicy.AutoPolicy(test_iface)
 ap.target_arch = TestingArchitecture(ap.target_arch)
-ap.handler = MyHandler()
+
+if os.isatty(1):
+	ap.handler = handler.ConsoleHandler()
 
 # Explore all combinations...
 
