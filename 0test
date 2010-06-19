@@ -70,6 +70,16 @@ if not test_matrix[test_iface]:
 
 if options.html and len(test_ifaces) < 2:
 	print >>sys.stderr, "Need versions for at least two interfaces for --html mode."
+	possible_deps = set()
+	for impl in iface_cache.iface_cache.get_feed(test_iface).implementations.values():
+		for dep in impl.requires:
+			if dep.interface not in test_matrix:
+				possible_deps.add(dep.interface)
+	if possible_deps:
+		print "Suggestions:"
+		for url in possible_deps:
+			print "-", url
+
 	sys.exit(1)
 
 # We do need a version for all the others (else what was the point of listing them?)
