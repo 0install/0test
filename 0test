@@ -9,7 +9,7 @@ sys.path.insert(0, os.environ["0TEST_ZEROINSTALL"])
 
 from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
 
-version = '0.2'
+version = '0.3'
 
 parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"For example, to test three versions of 0compile against two versions of Zero Install:\n\n"
