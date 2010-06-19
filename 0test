@@ -306,7 +306,7 @@ if html_file:
 		col_iface = iface_cache.iface_cache.get_interface(col_iface_uri)
 		row_iface = iface_cache.iface_cache.get_interface(row_iface_uri)
 
-		test_columns = list(get_combos([test_ifaces[-1]]))
+		test_columns = test_matrix[test_ifaces[-1]]
 
 		row = doc.createElement('tr')
 		table.appendChild(row)
@@ -334,7 +334,7 @@ if html_file:
 			th = doc.createElement('th')
 			row.appendChild(th)
 			th.appendChild(doc.createTextNode(row_iface_version))
-			for col_iface in test_columns:
+			for col_iface_version in test_columns:
 				td = doc.createElement('td')
 				row.appendChild(td)
 				key = frozenset(outer_key | set([(row_iface_uri, row_iface_version), (col_iface_uri, col_iface_version)]))
