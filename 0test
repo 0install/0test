@@ -232,11 +232,19 @@ html_file = options.html
 
 if html_file:
 	from xml.dom import minidom
-	doc = minidom.parseString("<div/>")
+	impl = minidom.getDOMImplementation()
+	doctype = impl.createDocumentType("html",
+			"-//W3C//DTD XHTML 1.0 Strict//EN",
+			"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd")
+	XMLNS_XHTML = "http://www.w3.org/1999/xhtml"
+	doc = impl.createDocument(XMLNS_XHTML, "html", doctype)
 	root = doc.documentElement
 
 	head = doc.createElement('head')
 	root.appendChild(head)
+	title = doc.createElement('title')
+	title.appendChild(doc.createTextNode('0test results for ' + test_iface))
+	head.appendChild(title)
 	style = doc.createElement('style')
 	head.appendChild(style)
 	style.setAttribute('type', "text/css")
@@ -262,6 +270,7 @@ if html_file:
 
 		table.testresults td.skipped {
 			background: yellow;
+			color: #888;
 		}
 
 		table.testresults td.failed {
@@ -269,15 +278,16 @@ if html_file:
 		}
 	"""))
 
+	body = doc.createElement('body')
+	root.appendChild(body)
+
 	for outer_combo in get_combos(test_ifaces[:-2]):
 		outer_key = frozenset(outer_combo.items())
 		outers = [(iface_cache.iface_cache.get_feed(uri).get_name() + " " + version) for (uri, version) in outer_combo.iteritems()]
+
 		heading = doc.createElement('h1')
 		heading.appendChild(doc.createTextNode(', '.join(outers) or 'Results'))
-		root.appendChild(heading)
-
-		body = doc.createElement('body')
-		root.appendChild(body)
+		body.appendChild(heading)
 
 		table = doc.createElement('table')
 		table.setAttribute('class', 'testresults')
@@ -289,11 +299,22 @@ if html_file:
 		col_iface = iface_cache.iface_cache.get_interface(col_iface_uri)
 		row_iface = iface_cache.iface_cache.get_interface(row_iface_uri)
 
+		test_columns = list(get_combos([test_ifaces[-1]]))
+
 		row = doc.createElement('tr')
 		table.appendChild(row)
 		th = doc.createElement('th')
 		row.appendChild(th)
-		th.appendChild(doc.createTextNode(row_iface.get_name() + "\\" + col_iface.get_name()))
+		th = doc.createElement('th')
+		th.setAttribute("colspan", str(len(test_columns)))
+		row.appendChild(th)
+		th.appendChild(doc.createTextNode(col_iface.get_name()))
+
+		row = doc.createElement('tr')
+		table.appendChild(row)
+		th = doc.createElement('th')
+		row.appendChild(th)
+		th.appendChild(doc.createTextNode(row_iface.get_name()))
 		for col_iface_version in test_matrix[col_iface_uri]:
 			th = doc.createElement('th')
 			row.appendChild(th)
@@ -306,7 +327,7 @@ if html_file:
 			th = doc.createElement('th')
 			row.appendChild(th)
 			th.appendChild(doc.createTextNode(row_iface_version))
-			for col_iface in get_combos([test_ifaces[-1]]):
+			for col_iface in test_columns:
 				td = doc.createElement('td')
 				row.appendChild(td)
 				key = frozenset(outer_key | set([(row_iface_uri, row_iface_version), (col_iface_uri, col_iface_version)]))
@@ -321,6 +342,8 @@ if html_file:
 						other_ifaces.append((iface.get_name(), impl.get_version()))
 				if other_ifaces:
 					td.appendChild(doc.createTextNode('\n'.join('%s %s' % (uri, version) for uri, version in other_ifaces)))
+				else:
+					td.appendChild(doc.createTextNode(result))
 		table.appendChild(doc.createTextNode('\n'))
 
 	stream = open(html_file, 'w')
