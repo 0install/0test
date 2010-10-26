@@ -181,7 +181,10 @@ def run_tests(ap):
 				run.execute(ap, [], main = test_main, wrapper = test_wrapper)
 				os._exit(0)
 			except model.SafeException, ex:
-				print >>sys.stderr, str(ex)
+				try:
+					print >>sys.stderr, unicode(ex)
+				except:
+					print >>sys.stderr, repr(ex)
 			except:
 				traceback.print_exc()
 		finally:
