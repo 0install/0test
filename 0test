@@ -148,7 +148,10 @@ def run_tests(ap):
 
 	if test_wrapper:
 		tests_dir = None
-		test_main = None
+		# $1 is the main executable, or the root of the package if there isn't one
+		# We have to add the slash because otherwise 0launch interprets the path
+		# relative to itself...
+		test_main = "/" + root_impl.metadata.get("main", "")
 	else:
 		test_main = root_impl.metadata.get("self-test", None)
 		if not test_main:
