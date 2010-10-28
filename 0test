@@ -12,7 +12,7 @@ if zi is not None:
 
 from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
 
-version = '0.3'
+version = '0.3.1'
 
 parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
 		"For example, to test two versions of 0compile against two versions of Zero Install:\n\n"
