@@ -5,7 +5,10 @@
 import os, traceback, sys
 from optparse import OptionParser
 
-sys.path.insert(0, os.environ["0TEST_ZEROINSTALL"])
+zi = os.environ.get("0TEST_ZEROINSTALL", None)
+if zi is not None:
+	sys.path.insert(0, zi)
+# (else using distro version)
 
 from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
 
