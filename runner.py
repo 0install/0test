@@ -33,19 +33,28 @@ def run_tests(tested_iface, ap, spec):
 		# $1 is the main executable, or the root of the package if there isn't one
 		# We have to add the slash because otherwise 0launch interprets the path
 		# relative to itself...
-		test_main = "/" + root_impl.metadata.get("main", "")
+		main_command = root_impl.commands.get("run", None)
+		if main_command and main_command.path:
+			test_main = "/" + main_command.path
+		else:
+			test_main = "/"
 	else:
-		test_main = root_impl.metadata.get("self-test", None)
-		if not test_main:
-			print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
+		test_command = root_impl.commands.get("test", None)
+		if not test_command:
+			print >>sys.stderr, "No test command for version %s" % root_impl.get_version()
 			return "skipped"
-		main_abs = os.path.join(_get_implementation_path(root_impl), test_main)
+		test_main = None
+
+		if test_command.path is None:
+			print >>sys.stderr, "Missing 'path' attribute on test <command>"
+			return "skipped"
+
+		main_abs = os.path.join(_get_implementation_path(root_impl), test_command.path)
 		if not os.path.exists(main_abs):
 			print >>sys.stderr, "Test executable does not exist:", main_abs
 			return "skipped"
 
 		tests_dir = os.path.dirname(main_abs)
-		test_main = '/' + test_main
 
 	child = os.fork()
 	if child:
@@ -88,7 +97,7 @@ class Results:
 		}
 
 def run_test_combinations(spec):
-	ap = autopolicy.AutoPolicy(spec.test_iface)
+	ap = autopolicy.AutoPolicy(spec.test_iface, command = 'test')
 	ap.target_arch = TestingArchitecture(ap.target_arch)
 
 	if os.isatty(1):
