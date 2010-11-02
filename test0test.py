@@ -77,5 +77,4 @@ class Test0Test(unittest.TestCase):
 
 suite = unittest.makeSuite(Test0Test)
 if __name__ == '__main__':
-	sys.argv.append('-v')
 	unittest.main()

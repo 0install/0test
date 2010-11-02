@@ -14,15 +14,17 @@ from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, a
 
 version = '0.3.1'
 
-parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ...\n\n"
+parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ... [-- ARGS]\n\n"
 		"For example, to test two versions of 0compile against two versions of Zero Install:\n\n"
 		"0test http://0install.net/2006/interfaces/0compile.xml 0.19 0.20 \\\n"
-		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.47 0.48")
+		"      http://0install.net/2007/interfaces/ZeroInstall.xml 0.47 0.48\n\n"
+		"The ARGS, if any, are passed through to the program's test script.")
 
 parser.add_option("", "--html", help="write results as HTML", action='store', metavar='OUTPUT')
 parser.add_option("-t", "--test-command", help="specify a custom test command", action='store', metavar='CMD')
 parser.add_option("-v", "--verbose", help="more verbose output", action='count')
 parser.add_option("-V", "--version", help="display version information", action='store_true')
+parser.disable_interspersed_args()
 
 (options, args) = parser.parse_args()
 
@@ -54,6 +56,13 @@ test_matrix = {}
 
 if test_wrapper:
 	test_wrapper += ' #'
+
+if '--' in args:
+	i = args.index('--')
+	test_args = args[i + 1:]
+	args = args[:i]
+else:
+	test_args = []
 
 iface = None
 for x in args:
@@ -184,7 +193,7 @@ def run_tests(ap):
 			try:
 				if test_wrapper is None:
 					os.chdir(tests_dir)
-				run.execute(ap, [], main = test_main, wrapper = test_wrapper)
+				run.execute(ap, test_args, main = test_main, wrapper = test_wrapper)
 				os._exit(0)
 			except model.SafeException, ex:
 				try:
