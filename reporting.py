@@ -3,15 +3,10 @@
 
 from zeroinstall.injector import iface_cache
 
-def format_combo(selections):
+def format_combo(combo):
 	this_combo = []
-	for x in selections:
-		impl = selections[x]
-		if impl:
-			version = impl.get_version()
-		else:
-			version = '(none)'
-		this_combo.append("%s v%s" % (x.get_name(), version))
+	for iface, version in combo.iteritems():
+		this_combo.append("%s v%s" % (iface.get_name(), version))
 	return ', '.join(this_combo)
 
 def print_summary(results):
@@ -135,9 +130,9 @@ def format_html(results):
 
 				other_ifaces = []
 				combo_ifaces = set(uri for (uri, version) in key)
-				for iface, impl in selections.iteritems():
+				for iface, version in selections.iteritems():
 					if iface.uri not in combo_ifaces:
-						other_ifaces.append((iface.get_name(), impl.get_version()))
+						other_ifaces.append((iface.get_name(), version))
 				if other_ifaces:
 					td.appendChild(doc.createTextNode('\n'.join('%s %s' % (uri, version) for uri, version in other_ifaces)))
 				else:

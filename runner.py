@@ -28,8 +28,6 @@ def _get_implementation_path(impl):
 def run_tests(tested_iface, ap, spec):
 	root_impl = ap.get_implementation(tested_iface)
 
-	print format_combo(ap.solver.selections)
-
 	if spec.test_wrapper:
 		tests_dir = None
 		# $1 is the main executable, or the root of the package if there isn't one
@@ -103,8 +101,11 @@ def run_test_combinations(spec):
 	for combo in spec.get_combos(spec.test_ifaces):
 		key = set()
 		restrictions = {}
+		selections = {}
 		for (uri, version) in combo.iteritems():
-			restrictions[iface_cache.iface_cache.get_interface(uri)] = [VersionRestriction(version)]
+			iface = iface_cache.iface_cache.get_interface(uri)
+			selections[iface] = version
+			restrictions[iface] = [VersionRestriction(version)]
 			key.add((uri, version))
 
 		ap.solver.extra_restrictions = restrictions
@@ -113,15 +114,23 @@ def run_test_combinations(spec):
 		if not ap.ready:
 			result = 'skipped'
 		else:
+			selections = {}
+			for iface, impl in ap.solver.selections.iteritems():
+				if impl:
+					version = impl.get_version()
+				else:
+					impl = None
+				selections[iface] = version
 			download = ap.download_uncached_implementations()
 			if download:
 				ap.handler.wait_for_blocker(download)
 
 			tested_impl = ap.implementation[tested_iface]
 
+			print format_combo(selections)
+
 			result = run_tests(tested_iface, ap, spec)
 
-		selections = ap.solver.selections.copy()
 		results.by_status[result].append(selections)
 		results.by_combo[frozenset(key)] = (result, selections)
 	
