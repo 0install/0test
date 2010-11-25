@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2008, Thomas Leonard
+# Copyright (C) 2010, Thomas Leonard
 # Visit http://0install.net for details.
 
 import os, traceback, sys
@@ -11,6 +11,8 @@ if zi is not None:
 # (else using distro version)
 
 from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
+
+import test_spec, runner, reporting
 
 version = '0.3.1'
 
@@ -50,42 +52,14 @@ if options.verbose:
 	else:
 		logger.setLevel(logging.DEBUG)
 
-test_ifaces = []
-test_wrapper = options.test_command
-test_matrix = {}
+spec = test_spec.parse_arguments(options, args)
 
-if test_wrapper:
-	test_wrapper += ' #'
-
-if '--' in args:
-	i = args.index('--')
-	test_args = args[i + 1:]
-	args = args[:i]
-else:
-	test_args = []
-
-iface = None
-for x in args:
-	if x[0].isdigit() and iface:
-		test_matrix[iface].append(x)
-	else:
-		assert x not in test_matrix, "Interface %s given twice!" % x
-		iface = model.canonical_iface_uri(x)
-		test_matrix[iface] = []
-		test_ifaces.append(iface)
-
-# We don't need to specify the version of the interface under test.
-test_iface = test_ifaces[0]
-if not test_matrix[test_iface]:
-	del test_matrix[test_iface]
-	del test_ifaces[0]
-
-if options.html and len(test_ifaces) < 2:
+if options.html and len(spec.test_ifaces) < 2:
 	print >>sys.stderr, "Need versions for at least two interfaces for --html mode."
 	possible_deps = set()
-	for impl in iface_cache.iface_cache.get_feed(test_iface).implementations.values():
+	for impl in iface_cache.iface_cache.get_feed(spec.test_iface).implementations.values():
 		for dep in impl.requires:
-			if dep.interface not in test_matrix:
+			if dep.interface not in spec.test_matrix:
 				possible_deps.add(dep.interface)
 	if possible_deps:
 		print "Suggestions:"
@@ -94,286 +68,20 @@ if options.html and len(test_ifaces) < 2:
 
 	sys.exit(1)
 
-# We do need a version for all the others (else what was the point of listing them?)
-for iface in test_ifaces[1:]:
-	if not test_matrix[iface]:
-		raise Exception("No versions given for interface %s" % iface)
-
-class VersionRestriction(model.Restriction):
-	def __init__(self, version):
-		self.version = version
-
-	def meets_restriction(self, impl):
-		return impl.get_version() == self.version
-
-	def __repr__(self):
-		return "version = %s" % self.version
-
-# Yield a sequence of set((uri, version)), one for each combination to test
-def get_combos(ifaces):
-	if not ifaces:
-		yield {}
-		return
-	for version in test_matrix[ifaces[0]]:
-		for combo in get_combos(ifaces[1:]):
-			combo[ifaces[0]] = version
-			yield combo.copy()
-
-def all_combinations():
-	return get_combos(test_ifaces)
-
-class TestingArchitecture(arch.Architecture):
-	use = frozenset([None, "testing"])
-
-	def __init__(self, child_arch):
-		arch.Architecture.__init__(self, child_arch.os_ranks, child_arch.machine_ranks)
-		self.child_arch = child_arch
-
-ap = autopolicy.AutoPolicy(test_iface)
-ap.target_arch = TestingArchitecture(ap.target_arch)
-
-if os.isatty(1):
-	ap.handler = handler.ConsoleHandler()
-
-# Explore all combinations...
-
-tested_iface = iface_cache.iface_cache.get_interface(test_iface)
-
-def _get_implementation_path(impl):
-	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
-
-def format_combo(selections):
-	this_combo = []
-	for x in selections:
-		impl = selections[x]
-		if impl:
-			version = impl.get_version()
-		else:
-			version = '(none)'
-		this_combo.append("%s v%s" % (x.get_name(), version))
-	return ', '.join(this_combo)
-
-def run_tests(ap):
-	root_impl = ap.get_implementation(tested_iface)
-
-	print format_combo(ap.solver.selections)
-
-	if test_wrapper:
-		tests_dir = None
-		# $1 is the main executable, or the root of the package if there isn't one
-		# We have to add the slash because otherwise 0launch interprets the path
-		# relative to itself...
-		test_main = "/" + root_impl.metadata.get("main", "")
-	else:
-		test_main = root_impl.metadata.get("self-test", None)
-		if not test_main:
-			print >>sys.stderr, "No self-test for version %s" % root_impl.get_version()
-			return "skipped"
-		main_abs = os.path.join(_get_implementation_path(root_impl), test_main)
-		if not os.path.exists(main_abs):
-			print >>sys.stderr, "Test executable does not exist:", main_abs
-			return "skipped"
-
-		tests_dir = os.path.dirname(main_abs)
-		test_main = '/' + test_main
-
-	child = os.fork()
-	if child:
-		# We are the parent
-		pid, status = os.waitpid(child, 0)
-		assert pid == child
-		print "Status:", hex(status)
-		if status == 0:
-			return "passed"
-		else:
-			return "failed"
-	else:
-		# We are the child
-		try:
-			try:
-				if test_wrapper is None:
-					os.chdir(tests_dir)
-				run.execute(ap, test_args, main = test_main, wrapper = test_wrapper)
-				os._exit(0)
-			except model.SafeException, ex:
-				try:
-					print >>sys.stderr, unicode(ex)
-				except:
-					print >>sys.stderr, repr(ex)
-			except:
-				traceback.print_exc()
-		finally:
-			sys.stdout.flush()
-			sys.stderr.flush()
-			os._exit(1)
-
-if 'DISPLAY' in os.environ and not test_wrapper:
+if 'DISPLAY' in os.environ and not spec.test_wrapper:
 	del os.environ['DISPLAY']
 
-results_by_combo = {}		# { set((uri, version)) : status }
-results_by_status = {		# status -> [ selections ]
-	'passed': [],
-	'skipped': [],
-	'failed': [],
-}
+results = runner.run_test_combinations(spec)
 
-for combo in all_combinations():
-	key = set()
-	restrictions = {}
-	for (uri, version) in combo.iteritems():
-		restrictions[iface_cache.iface_cache.get_interface(uri)] = [VersionRestriction(version)]
-		key.add((uri, version))
-
-	ap.solver.extra_restrictions = restrictions
-	solve = ap.solve_with_downloads()
-	ap.handler.wait_for_blocker(solve)
-	if not ap.ready:
-		result = 'skipped'
-	else:
-		download = ap.download_uncached_implementations()
-		if download:
-			ap.handler.wait_for_blocker(download)
-
-		tested_impl = ap.implementation[tested_iface]
-
-		result = run_tests(ap)
-
-	selections = ap.solver.selections.copy()
-	results_by_status[result].append(selections)
-	results_by_combo[frozenset(key)] = (result, selections)
-
-print "\nSUMMARY:\n"
-
-for label in ["passed", "skipped", "failed"]:
-	results = results_by_status[label]
-	if not results:
-		print "None", label
-	else:
-		print label.capitalize()
-		for combo in results:
-			print " - " + format_combo(combo)
+reporting.print_summary(results)
 
 html_file = options.html
 
 if html_file:
-	from xml.dom import minidom
-	impl = minidom.getDOMImplementation()
-	doctype = impl.createDocumentType("html",
-			"-//W3C//DTD XHTML 1.0 Strict//EN",
-			"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd")
-	XMLNS_XHTML = "http://www.w3.org/1999/xhtml"
-	doc = impl.createDocument(XMLNS_XHTML, "html", doctype)
-	root = doc.documentElement
-
-	head = doc.createElement('head')
-	root.appendChild(head)
-	title = doc.createElement('title')
-	title.appendChild(doc.createTextNode('0test results for ' + test_iface))
-	head.appendChild(title)
-	style = doc.createElement('style')
-	head.appendChild(style)
-	style.setAttribute('type', "text/css")
-	style.appendChild(doc.createTextNode("""
-		table.testresults {
-			border: 1px solid black;
-			background: white;
-			color: white;
-		}
-
-		table.testresults th {
-			text-align: left;
-			background: #888;
-		}
-
-		table.testresults td.passed {
-			white-space: pre;
-		}
-
-		table.testresults td.passed {
-			background: green;
-		}
-
-		table.testresults td.skipped {
-			background: yellow;
-			color: #888;
-		}
-
-		table.testresults td.failed {
-			background: red;
-		}
-	"""))
-
-	body = doc.createElement('body')
-	root.appendChild(body)
-
-	for outer_combo in get_combos(test_ifaces[:-2]):
-		outer_key = frozenset(outer_combo.items())
-		outers = [(iface_cache.iface_cache.get_feed(uri).get_name() + " " + version) for (uri, version) in outer_combo.iteritems()]
-
-		heading = doc.createElement('h1')
-		heading.appendChild(doc.createTextNode(', '.join(outers) or 'Results'))
-		body.appendChild(heading)
-
-		table = doc.createElement('table')
-		table.setAttribute('class', 'testresults')
-		body.appendChild(table)
-
-		col_iface_uri = test_ifaces[-1]
-		row_iface_uri = test_ifaces[-2]
-
-		col_iface = iface_cache.iface_cache.get_interface(col_iface_uri)
-		row_iface = iface_cache.iface_cache.get_interface(row_iface_uri)
-
-		test_columns = test_matrix[test_ifaces[-1]]
-
-		row = doc.createElement('tr')
-		table.appendChild(row)
-		th = doc.createElement('th')
-		row.appendChild(th)
-		th = doc.createElement('th')
-		th.setAttribute("colspan", str(len(test_columns)))
-		row.appendChild(th)
-		th.appendChild(doc.createTextNode(col_iface.get_name()))
-
-		row = doc.createElement('tr')
-		table.appendChild(row)
-		th = doc.createElement('th')
-		row.appendChild(th)
-		th.appendChild(doc.createTextNode(row_iface.get_name()))
-		for col_iface_version in test_matrix[col_iface_uri]:
-			th = doc.createElement('th')
-			row.appendChild(th)
-			th.appendChild(doc.createTextNode(col_iface_version))
-
-		for row_iface_version in test_matrix[row_iface_uri]:
-			table.appendChild(doc.createTextNode('\n'))
-			row = doc.createElement('tr')
-			table.appendChild(row)
-			th = doc.createElement('th')
-			row.appendChild(th)
-			th.appendChild(doc.createTextNode(row_iface_version))
-			for col_iface_version in test_columns:
-				td = doc.createElement('td')
-				row.appendChild(td)
-				key = frozenset(outer_key | set([(row_iface_uri, row_iface_version), (col_iface_uri, col_iface_version)]))
-
-				result, selections = results_by_combo[key]
-				td.setAttribute('class', result)
-
-				other_ifaces = []
-				combo_ifaces = set(uri for (uri, version) in key)
-				for iface, impl in selections.iteritems():
-					if iface.uri not in combo_ifaces:
-						other_ifaces.append((iface.get_name(), impl.get_version()))
-				if other_ifaces:
-					td.appendChild(doc.createTextNode('\n'.join('%s %s' % (uri, version) for uri, version in other_ifaces)))
-				else:
-					td.appendChild(doc.createTextNode(result))
-		table.appendChild(doc.createTextNode('\n'))
-
+	doc = reporting.format_html(results)
 	stream = open(html_file, 'w')
 	doc.writexml(stream, encoding = 'utf8')
 	stream.close()
 
-if results_by_status['failed']:
+if results.by_status['failed']:
 	sys.exit(1)
