@@ -13,12 +13,13 @@ my_dir = os.path.abspath(os.path.dirname(__file__))
 test_bin = os.path.join(my_dir, '0test')
 
 publish_uri = 'http://0install.net/2006/interfaces/0publish'	# The program to test
+publish_version = '0.18'
 
 if 'DISPLAY' in os.environ:
 	del os.environ['DISPLAY']
 
 # Ensure it's cached now, to avoid extra output during the tests
-if subprocess.call(['0launch', '-c', '--download-only', publish_uri]):
+if subprocess.call(['0launch', '-c', '--download-only', '--not-before=' + publish_version, '--before=' + publish_version + '-post', publish_uri]):
 	raise Exception("Failed to download test program")
 
 def test(*args, **kwargs):
@@ -73,7 +74,7 @@ class Test0Test(unittest.TestCase):
 		test('--help', expect = 'Usage: 0test')
 	
 	def test0publish(self):
-		test(publish_uri, expect = 'None failed')
+		test(publish_uri, publish_version, expect = 'None failed')
 
 suite = unittest.makeSuite(Test0Test)
 if __name__ == '__main__':
