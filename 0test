@@ -33,7 +33,7 @@ parser.disable_interspersed_args()
 
 if options.version:
 	print "0test (zero-install) " + version
-	print "Copyright (C) 2008 Thomas Leonard"
+	print "Copyright (C) 2010 Thomas Leonard"
 	print "This program comes with ABSOLUTELY NO WARRANTY,"
 	print "to the extent permitted by law."
 	print "You may redistribute copies of this program"
