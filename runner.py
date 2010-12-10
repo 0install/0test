@@ -97,7 +97,11 @@ class Results:
 		}
 
 def run_test_combinations(spec):
-	ap = autopolicy.AutoPolicy(spec.test_iface, command = 'test')
+	if spec.test_wrapper is None:
+		test_command = 'test'
+	else:
+		test_command = None
+	ap = autopolicy.AutoPolicy(spec.test_iface, command = test_command)
 	ap.target_arch = TestingArchitecture(ap.target_arch)
 
 	if os.isatty(1):
