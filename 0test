@@ -24,6 +24,7 @@ parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ... [-- ARGS]\
 		"The ARGS, if any, are passed through to the program's test script.")
 
 parser.add_option("", "--html", help="write results as HTML", action='store', metavar='OUTPUT')
+parser.add_option("-o", "--offline", help="run in off-line mode", action='store_true')
 parser.add_option("-t", "--test-command", help="specify a custom test command", action='store', metavar='CMD')
 parser.add_option("-v", "--verbose", help="more verbose output", action='count')
 parser.add_option("-V", "--version", help="display version information", action='store_true')

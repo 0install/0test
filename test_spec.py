@@ -5,6 +5,8 @@ from zeroinstall import SafeException
 from zeroinstall.injector import model
 
 class TestSpec:
+	offline = False
+
 	def __init__(self):
 		self.test_iface = None	# The URI of the program being tested
 
@@ -30,6 +32,8 @@ def parse_arguments(options, args):
 
 	if options.test_command:
 		spec.test_wrapper = options.test_command + ' #'
+
+	spec.offline = options.offline
 
 	if '--' in args:
 		i = args.index('--')

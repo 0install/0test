@@ -104,6 +104,9 @@ def run_test_combinations(spec):
 	ap = autopolicy.AutoPolicy(spec.test_iface, command = test_command)
 	ap.target_arch = TestingArchitecture(ap.target_arch)
 
+	if spec.offline:
+		ap.network_use = model.network_offline
+
 	if os.isatty(1):
 		ap.handler = handler.ConsoleHandler()
 
