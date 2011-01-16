@@ -80,6 +80,7 @@ def run_tests(tested_iface, ap, spec):
 				except:
 					print >>sys.stderr, repr(ex)
 			except:
+				import traceback
 				traceback.print_exc()
 		finally:
 			sys.stdout.flush()
