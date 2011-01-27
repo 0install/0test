@@ -25,36 +25,33 @@ class TestingArchitecture(arch.Architecture):
 def _get_implementation_path(impl):
 	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
 
-def run_tests(tested_iface, ap, spec):
-	root_impl = ap.get_implementation(tested_iface)
+def run_tests(tested_iface, sels, spec):
+	main_command = sels.commands[0]
+
+	root_impl = sels.selections[tested_iface.uri]
+	assert root_impl
 
 	if spec.test_wrapper:
 		tests_dir = None
 		# $1 is the main executable, or the root of the package if there isn't one
 		# We have to add the slash because otherwise 0launch interprets the path
 		# relative to itself...
-		main_command = root_impl.commands.get("run", None)
 		if main_command and main_command.path:
 			test_main = "/" + main_command.path
 		else:
 			test_main = "/"
 	else:
-		test_command = root_impl.commands.get("test", None)
-		if not test_command:
-			print >>sys.stderr, "No test command for version %s" % root_impl.get_version()
-			return "skipped"
 		test_main = None
 
-		if test_command.path is None:
-			print >>sys.stderr, "Missing 'path' attribute on test <command>"
-			return "skipped"
+		if main_command.path is None:
+			tests_dir = _get_implementation_path(root_impl)
+		else:
+			main_abs = os.path.join(_get_implementation_path(root_impl), main_command.path)
+			if not os.path.exists(main_abs):
+				print >>sys.stderr, "Test executable does not exist:", main_abs
+				return "skipped"
 
-		main_abs = os.path.join(_get_implementation_path(root_impl), test_command.path)
-		if not os.path.exists(main_abs):
-			print >>sys.stderr, "Test executable does not exist:", main_abs
-			return "skipped"
-
-		tests_dir = os.path.dirname(main_abs)
+			tests_dir = os.path.dirname(main_abs)
 
 	child = os.fork()
 	if child:
@@ -72,7 +69,7 @@ def run_tests(tested_iface, ap, spec):
 			try:
 				if spec.test_wrapper is None:
 					os.chdir(tests_dir)
-				run.execute(ap, spec.test_args, main = test_main, wrapper = spec.test_wrapper)
+				run.execute_selections(sels, spec.test_args, main = test_main, wrapper = spec.test_wrapper)
 				os._exit(0)
 			except model.SafeException, ex:
 				try:
@@ -146,7 +143,7 @@ def run_test_combinations(spec):
 
 			print format_combo(selections)
 
-			result = run_tests(tested_iface, ap, spec)
+			result = run_tests(tested_iface, ap.solver.selections, spec)
 
 		results.by_status[result].append(selections)
 		results.by_combo[frozenset(key)] = (result, selections)
