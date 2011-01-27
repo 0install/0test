@@ -94,5 +94,8 @@ except SafeException, ex:
 	sys.exit(1)
 
 
-if results.by_status['failed'] or results.by_status['skipped']:
+if results.by_status['failed']:
 	sys.exit(1)
+
+if results.by_status['skipped']:
+	sys.exit(2)
