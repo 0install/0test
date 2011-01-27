@@ -53,6 +53,7 @@ if options.verbose:
 		logger.setLevel(logging.INFO)
 	else:
 		logger.setLevel(logging.DEBUG)
+	logging.info("Starting 0test %s", version)
 
 try:
 	spec = test_spec.parse_arguments(options, args)
