@@ -26,7 +26,7 @@ def _get_implementation_path(impl):
 	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
 
 def run_tests(tested_iface, sels, spec):
-	main_command = sels.commands[0]
+	main_command = sels.commands and sels.commands[0]
 
 	root_impl = sels.selections[tested_iface.uri]
 	assert root_impl
