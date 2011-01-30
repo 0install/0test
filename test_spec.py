@@ -30,15 +30,17 @@ class TestSpec:
 def parse_arguments(options, args):
 	spec = TestSpec()
 
-	if options.test_command:
-		spec.test_wrapper = options.test_command + ' #'
-
 	spec.offline = options.offline
 
 	if '--' in args:
 		i = args.index('--')
 		spec.test_args = args[i + 1:]
 		args = args[:i]
+
+	if options.test_command:
+		spec.test_wrapper = options.test_command + ' #'
+		if spec.test_args:
+			raise SafeException("Can't specify arguments with --test-command")
 
 	iface = None
 	for x in args:
