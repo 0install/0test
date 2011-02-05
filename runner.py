@@ -1,7 +1,7 @@
 # Copyright (C) 2010, Thomas Leonard
 # Visit http://0install.net for details.
 
-import os, sys
+import os, sys, logging
 from zeroinstall.injector import policy, model, run, arch, requirements
 from reporting import format_combo
 
@@ -121,6 +121,7 @@ def run_test_combinations(config, spec):
 		solve = ap.solve_with_downloads()
 		ap.handler.wait_for_blocker(solve)
 		if not ap.ready:
+			logging.info("Can't select combination %s: %s", combo, ap.solver.get_failure_reason())
 			result = 'skipped'
 		else:
 			selections = {}
