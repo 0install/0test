@@ -2,7 +2,7 @@
 # Visit http://0install.net for details.
 
 import os, sys
-from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
+from zeroinstall.injector import policy, model, run, arch, requirements
 from reporting import format_combo
 
 class VersionRestriction(model.Restriction):
@@ -22,10 +22,10 @@ class TestingArchitecture(arch.Architecture):
 		arch.Architecture.__init__(self, child_arch.os_ranks, child_arch.machine_ranks)
 		self.child_arch = child_arch
 
-def _get_implementation_path(impl):
-	return impl.local_path or iface_cache.iface_cache.stores.lookup_any(impl.digests)
+def run_tests(config, tested_iface, sels, spec):
+	def _get_implementation_path(impl):
+		return impl.local_path or config.iface_cache.stores.lookup_any(impl.digests)
 
-def run_tests(tested_iface, sels, spec):
 	main_command = sels.commands and sels.commands[0]
 
 	root_impl = sels.selections[tested_iface.uri]
@@ -94,30 +94,25 @@ class Results:
 			'failed': [],
 		}
 
-def run_test_combinations(spec):
+def run_test_combinations(config, spec):
+	r = requirements.Requirements(spec.test_iface)
 	if spec.test_wrapper is None:
-		test_command = 'test'
+		r.command = 'test'
 	else:
-		test_command = None
-	ap = autopolicy.AutoPolicy(spec.test_iface, command = test_command)
+		r.command = None
+	ap = policy.Policy(config = config, requirements = r)
 	ap.target_arch = TestingArchitecture(ap.target_arch)
-
-	if spec.offline:
-		ap.network_use = model.network_offline
-
-	if os.isatty(1):
-		ap.handler = handler.ConsoleHandler()
 
 	# Explore all combinations...
 
-	tested_iface = iface_cache.iface_cache.get_interface(spec.test_iface)
+	tested_iface = config.iface_cache.get_interface(spec.test_iface)
 	results = Results(spec)
 	for combo in spec.get_combos(spec.test_ifaces):
 		key = set()
 		restrictions = {}
 		selections = {}
 		for (uri, version) in combo.iteritems():
-			iface = iface_cache.iface_cache.get_interface(uri)
+			iface = config.iface_cache.get_interface(uri)
 			selections[iface] = version
 			restrictions[iface] = [VersionRestriction(version)]
 			key.add((uri, version))
@@ -137,13 +132,13 @@ def run_test_combinations(spec):
 				selections[iface] = version
 			download = ap.download_uncached_implementations()
 			if download:
-				ap.handler.wait_for_blocker(download)
+				config.handler.wait_for_blocker(download)
 
 			tested_impl = ap.implementation[tested_iface]
 
 			print format_combo(selections)
 
-			result = run_tests(tested_iface, ap.solver.selections, spec)
+			result = run_tests(config, tested_iface, ap.solver.selections, spec)
 
 		results.by_status[result].append(selections)
 		results.by_combo[frozenset(key)] = (result, selections)

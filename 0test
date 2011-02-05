@@ -11,7 +11,7 @@ if zi is not None:
 # (else using distro version)
 
 from zeroinstall import SafeException
-from zeroinstall.injector import autopolicy, iface_cache, model, run, handler, arch
+from zeroinstall.injector import model, handler, policy
 
 import test_spec, runner, reporting
 
@@ -34,7 +34,7 @@ parser.disable_interspersed_args()
 
 if options.version:
 	print "0test (zero-install) " + version
-	print "Copyright (C) 2010 Thomas Leonard"
+	print "Copyright (C) 2011 Thomas Leonard"
 	print "This program comes with ABSOLUTELY NO WARRANTY,"
 	print "to the extent permitted by law."
 	print "You may redistribute copies of this program"
@@ -56,12 +56,21 @@ if options.verbose:
 	logging.info("Starting 0test %s", version)
 
 try:
+	if os.isatty(1):
+		h = handler.ConsoleHandler()
+	else:
+		h = handler.Handler()
+	config = policy.load_config(handler = h)
+
+	if options.offline:
+		config.network_use = model.network_offline
+
 	spec = test_spec.parse_arguments(options, args)
 
 	if options.html and len(spec.test_ifaces) < 2:
 		print >>sys.stderr, "Need versions for at least two interfaces for --html mode."
 		possible_deps = set()
-		for impl in iface_cache.iface_cache.get_feed(spec.test_iface).implementations.values():
+		for impl in config.iface_cache.get_feed(spec.test_iface).implementations.values():
 			for dep in impl.requires:
 				if dep.interface not in spec.test_matrix:
 					possible_deps.add(dep.interface)
@@ -75,7 +84,7 @@ try:
 	if 'DISPLAY' in os.environ and not spec.test_wrapper:
 		del os.environ['DISPLAY']
 
-	results = runner.run_test_combinations(spec)
+	results = runner.run_test_combinations(config, spec)
 
 	reporting.print_summary(results)
 
