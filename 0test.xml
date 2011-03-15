@@ -22,7 +22,7 @@ create a matrix of test results.</description>
 
   <group license="OSI Approved :: GNU General Public License v2" main="0test">
     <command name="test" path="test0test.py"/>
-    <implementation id="." released="2011-03-15" version="0.5"/>
+    <implementation id="." version="0.5-post"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
       <version not-before="0.52"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
