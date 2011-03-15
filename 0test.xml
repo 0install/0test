@@ -24,7 +24,7 @@ create a matrix of test results.</description>
     <command name="test" path="test0test.py"/>
     <implementation id="." version="0.4-post"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
-      <version not-before="0.51"/>
+      <version not-before="0.52"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
     </requires>
   </group>
