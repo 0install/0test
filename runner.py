@@ -114,7 +114,15 @@ def run_test_combinations(config, spec):
 		for (uri, version) in combo.iteritems():
 			iface = config.iface_cache.get_interface(uri)
 			selections[iface] = version
-			restrictions[iface] = [VersionRestriction(version)]
+
+			if ',' in version:
+				not_before, before = [model.parse_version(v) if v != "" else None for v in version.split(',')]
+				if (not_before and before) and not_before >= before:
+					raise model.SafeException("Low version >= high version in %s!" % version)
+				restrictions[iface] = [model.VersionRangeRestriction(before, not_before)]
+			else:
+				model.parse_version(version)	# Check format
+				restrictions[iface] = [VersionRestriction(version)]
 			key.add((uri, version))
 
 		ap.solver.extra_restrictions = restrictions
@@ -125,7 +133,7 @@ def run_test_combinations(config, spec):
 			result = 'skipped'
 			for uri, impl in ap.solver.selections.iteritems():
 				if impl is None:
-					selections[uri] = '?'
+					selections[uri] = selections[uri] or '?'
 				else:
 					selections[uri] = impl.get_version()
 		else:

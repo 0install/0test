@@ -40,7 +40,7 @@ def parse_arguments(options, args):
 
 	iface = None
 	for x in args:
-		if x[0].isdigit() and iface:
+		if (x[0].isdigit() or x[0] == ',') and iface:
 			spec.test_matrix[iface].append(x)
 		else:
 			assert x not in spec.test_matrix, "Interface %s given twice!" % x
