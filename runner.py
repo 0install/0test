@@ -123,6 +123,11 @@ def run_test_combinations(config, spec):
 		if not ap.ready:
 			logging.info("Can't select combination %s: %s", combo, ap.solver.get_failure_reason())
 			result = 'skipped'
+			for uri, impl in ap.solver.selections.iteritems():
+				if impl is None:
+					selections[uri] = '?'
+				else:
+					selections[uri] = impl.get_version()
 		else:
 			selections = {}
 			for iface, impl in ap.solver.selections.iteritems():
