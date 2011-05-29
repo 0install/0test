@@ -133,7 +133,7 @@ def run_test_combinations(config, spec):
 			result = 'skipped'
 			for uri, impl in ap.solver.selections.iteritems():
 				if impl is None:
-					selections[uri] = selections[uri] or '?'
+					selections[uri] = selections.get(uri, None) or '?'
 				else:
 					selections[uri] = impl.get_version()
 		else:
