@@ -21,17 +21,17 @@ create a matrix of test results.</description>
   <needs-terminal/>
 
   <group license="OSI Approved :: GNU General Public License v2" main="0test">
-    <command name='run' path='0test'>
-      <runner interface='http://repo.roscidus.com/python/python'>
-	<version before='3'/>
+    <command name="run" path="0test">
+      <runner interface="http://repo.roscidus.com/python/python">
+	<version before="3"/>
       </runner>
     </command>
     <command name="test" path="test0test.py">
-      <runner interface='http://repo.roscidus.com/python/python'>
-	<version before='3'/>
+      <runner interface="http://repo.roscidus.com/python/python">
+	<version before="3"/>
       </runner>
     </command>
-    <implementation id="." version="0.5-post"/>
+    <implementation id="." released="2011-08-01" version="0.6"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
       <version not-before="0.52"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
