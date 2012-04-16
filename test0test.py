@@ -76,6 +76,14 @@ class Test0Test(unittest.TestCase):
 	def test0publish(self):
 		test(publish_uri, publish_version, expect = 'None failed')
 
+	def testTestCommand(self):
+		test('-t', 'echo $*', publish_uri, publish_version, expect = '/0publish')
+
+	def testCommand(self):
+		test('-c', 'run', publish_uri, publish_version, '--', '--version', expect = 'ABSOLUTELY NO WARRANTY')
+		test('-c', '', publish_uri, publish_version, '--', '--version', expect = 'No <command> requested and no test command either!')
+		test('-c', '', '-t', 'stat $1', publish_uri, publish_version, expect = 'directory')
+
 suite = unittest.makeSuite(Test0Test)
 if __name__ == '__main__':
 	unittest.main()

@@ -26,7 +26,7 @@ def run_tests(config, tested_iface, sels, spec):
 	def _get_implementation_path(impl):
 		return impl.local_path or config.iface_cache.stores.lookup_any(impl.digests)
 
-	main_command = sels.commands and sels.commands[0]
+	main_command = sels.commands[0] if sels.commands else None
 
 	root_impl = sels.selections[tested_iface.uri]
 	assert root_impl
@@ -41,6 +41,10 @@ def run_tests(config, tested_iface, sels, spec):
 		else:
 			test_main = "/"
 	else:
+		if main_command is None:
+			print >>sys.stderr, "No <command> requested and no test command either!"
+			return "skipped"
+
 		test_main = None
 
 		if main_command.path is None:
@@ -96,10 +100,7 @@ class Results:
 
 def run_test_combinations(config, spec):
 	r = requirements.Requirements(spec.test_iface)
-	if spec.test_wrapper is None:
-		r.command = 'test'
-	else:
-		r.command = None
+	r.command = spec.command
 	ap = policy.Policy(config = config, requirements = r)
 	ap.target_arch = TestingArchitecture(ap.target_arch)
 

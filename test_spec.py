@@ -3,6 +3,7 @@
 
 from zeroinstall import SafeException
 from zeroinstall.injector import model
+import logging
 
 class TestSpec:
 	def __init__(self):
@@ -12,6 +13,7 @@ class TestSpec:
 		self.test_matrix = {}	# {URI: [version]} - versions of each interface to test
 		# (test_ifaces is needed because we care about the order)
 
+		self.command = None
 		self.test_wrapper = None	# Command to execute to perform tests
 		self.test_args = []	# Arguments to pass to test script
 
@@ -37,6 +39,20 @@ def parse_arguments(options, args):
 		spec.test_wrapper = options.test_command + ' #'
 		if spec.test_args:
 			raise SafeException("Can't specify arguments with --test-command")
+
+		spec.command = 'run'
+	else:
+		spec.command = 'test'
+
+	if options.command == '':
+		spec.command = None
+	elif options.command:
+		spec.command = options.command
+
+	if spec.command:
+		logging.info("Test command is '{command}'".format(command = spec.command))
+	else:
+		logging.info("Test command is None")
 
 	iface = None
 	for x in args:
