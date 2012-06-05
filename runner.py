@@ -2,7 +2,8 @@
 # Visit http://0install.net for details.
 
 import os, sys, logging
-from zeroinstall.injector import policy, model, run, arch, requirements
+from zeroinstall.injector import driver, model, run, arch, requirements
+from zeroinstall.support import tasks
 from reporting import format_combo
 
 class VersionRestriction(model.Restriction):
@@ -14,13 +15,6 @@ class VersionRestriction(model.Restriction):
 
 	def __repr__(self):
 		return "version = %s" % self.version
-
-class TestingArchitecture(arch.Architecture):
-	use = frozenset([None, "testing"])
-
-	def __init__(self, child_arch):
-		arch.Architecture.__init__(self, child_arch.os_ranks, child_arch.machine_ranks)
-		self.child_arch = child_arch
 
 def run_tests(config, tested_iface, sels, spec):
 	def _get_implementation_path(impl):
@@ -101,8 +95,9 @@ class Results:
 def run_test_combinations(config, spec):
 	r = requirements.Requirements(spec.test_iface)
 	r.command = spec.command
-	ap = policy.Policy(config = config, requirements = r)
-	ap.target_arch = TestingArchitecture(ap.target_arch)
+
+	d = driver.Driver(config = config, requirements = r)
+	solver = d.solver
 
 	# Explore all combinations...
 
@@ -126,34 +121,34 @@ def run_test_combinations(config, spec):
 				restrictions[iface] = [VersionRestriction(version)]
 			key.add((uri, version))
 
-		ap.solver.extra_restrictions = restrictions
-		solve = ap.solve_with_downloads()
-		ap.handler.wait_for_blocker(solve)
-		if not ap.ready:
-			logging.info("Can't select combination %s: %s", combo, ap.solver.get_failure_reason())
+		solver.extra_restrictions = restrictions
+		solve = d.solve_with_downloads()
+		tasks.wait_for_blocker(solve)
+		if not solver.ready:
+			logging.info("Can't select combination %s: %s", combo, solver.get_failure_reason())
 			result = 'skipped'
-			for uri, impl in ap.solver.selections.iteritems():
+			for uri, impl in solver.selections.iteritems():
 				if impl is None:
 					selections[uri] = selections.get(uri, None) or '?'
 				else:
 					selections[uri] = impl.get_version()
 		else:
 			selections = {}
-			for iface, impl in ap.solver.selections.iteritems():
+			for iface, impl in solver.selections.iteritems():
 				if impl:
 					version = impl.get_version()
 				else:
 					impl = None
 				selections[iface] = version
-			download = ap.download_uncached_implementations()
+			download = d.download_uncached_implementations()
 			if download:
 				config.handler.wait_for_blocker(download)
 
-			tested_impl = ap.implementation[tested_iface]
+			tested_impl = solver.selections[tested_iface]
 
 			print format_combo(selections)
 
-			result = run_tests(config, tested_iface, ap.solver.selections, spec)
+			result = run_tests(config, tested_iface, solver.selections, spec)
 
 		results.by_status[result].append(selections)
 		results.by_combo[frozenset(key)] = (result, selections)
