@@ -19,7 +19,10 @@ def print_summary(results):
 		else:
 			print label.capitalize()
 			for combo in results_for_status:
-				print " - " + format_combo(combo)
+				if isinstance(combo, Exception):
+					print " - " + unicode(combo)
+				else:
+					print " - " + format_combo(combo)
 
 def format_html(results):
 	spec = results.spec

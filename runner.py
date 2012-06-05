@@ -132,6 +132,8 @@ def run_test_combinations(config, spec):
 					selections[uri] = selections.get(uri, None) or '?'
 				else:
 					selections[uri] = impl.get_version()
+			if not selections:
+				selections = solver.get_failure_reason()
 		else:
 			selections = {}
 			for iface, impl in solver.selections.iteritems():
