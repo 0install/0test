@@ -16,6 +16,10 @@ class VersionRestriction(model.Restriction):
 	def __repr__(self):
 		return "version = %s" % self.version
 
+class NonlocalRestriction(model.Restriction):
+	def meets_restriction(self, impl):
+		return impl.local_path is None
+
 def run_tests(config, tested_iface, sels, spec):
 	def _get_implementation_path(impl):
 		return impl.local_path or config.iface_cache.stores.lookup_any(impl.digests)
@@ -111,7 +115,12 @@ def run_test_combinations(config, spec):
 			iface = config.iface_cache.get_interface(uri)
 			selections[iface] = version
 
-			if ',' in version:
+			if version.startswith('%'):
+				if version == '%nonlocal':
+					restrictions[iface] = [NonlocalRestriction()]
+				else:
+					raise model.SafeException("Unknown special '{special}'".format(special = version))
+			elif ',' in version:
 				not_before, before = [model.parse_version(v) if v != "" else None for v in version.split(',')]
 				if (not_before and before) and not_before >= before:
 					raise model.SafeException("Low version >= high version in %s!" % version)
