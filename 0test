@@ -26,6 +26,7 @@ parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ... [-- ARGS]\
 parser.add_option("", "--html", help="write results as HTML", action='store', metavar='OUTPUT')
 parser.add_option("-c", "--command", help="the <command> to select", action='store', metavar='CMD')
 parser.add_option("-o", "--offline", help="run in off-line mode", action='store_true')
+parser.add_option("-s", "--skip-ok", help="skipping tests is not an error", action='store_true')
 parser.add_option("-t", "--test-command", help="specify a custom shell command", action='store', metavar='CMD')
 parser.add_option("-v", "--verbose", help="more verbose output", action='count')
 parser.add_option("-V", "--version", help="display version information", action='store_true')
@@ -108,5 +109,5 @@ except SafeException, ex:
 if results.by_status['failed']:
 	sys.exit(1)
 
-if results.by_status['skipped']:
+if results.by_status['skipped'] and not options.skip_ok:
 	sys.exit(2)
