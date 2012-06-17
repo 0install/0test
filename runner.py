@@ -2,7 +2,7 @@
 # Visit http://0install.net for details.
 
 import os, sys, logging
-from zeroinstall.injector import driver, model, run, arch, requirements
+from zeroinstall.injector import driver, model, run, requirements
 from zeroinstall.support import tasks
 from reporting import format_combo
 
@@ -154,8 +154,6 @@ def run_test_combinations(config, spec):
 			download = d.download_uncached_implementations()
 			if download:
 				config.handler.wait_for_blocker(download)
-
-			tested_impl = solver.selections[tested_iface]
 
 			print format_combo(selections)
 
