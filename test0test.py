@@ -9,15 +9,13 @@ stores = Stores()
 my_dir = os.path.abspath(os.path.dirname(__file__))
 test_bin = os.path.join(my_dir, '0test')
 
-publish_uri = 'http://0install.net/2006/interfaces/0publish'	# The program to test
-publish_version = '0.18'
+# Get the version of 0publish to be tested...
+publish_version_line = subprocess.check_output(['0publish', '--version']).decode('utf-8').split('\n', 1)[0]
+publish_version = publish_version_line.rsplit(' ', 1)[1]
+publish_uri = 'http://0install.net/2006/interfaces/0publish'
 
 if 'DISPLAY' in os.environ:
 	del os.environ['DISPLAY']
-
-# Ensure it's cached now, to avoid extra output during the tests
-if subprocess.call(['0launch', '-c', '--download-only', '--not-before=' + publish_version, '--before=' + publish_version + '-post', publish_uri]):
-	raise Exception("Failed to download test program")
 
 def test(*args, **kwargs):
 	run(*([test_bin] + list(args)), **kwargs)

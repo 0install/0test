@@ -30,6 +30,10 @@ create a matrix of test results.</description>
       <runner interface="http://repo.roscidus.com/python/python">
 	<version before="3"/>
       </runner>
+      <requires interface="http://0install.net/2006/interfaces/0publish">
+	<version not-before='0.21' before='0.21-post'/>
+	<executable-in-path name='0publish'/>
+      </requires>
     </command>
     <implementation id="." version="0.7-post"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
