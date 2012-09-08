@@ -9,8 +9,17 @@ stores = Stores()
 my_dir = os.path.abspath(os.path.dirname(__file__))
 test_bin = os.path.join(my_dir, '0test')
 
+# Python 2.6 doesn't have this
+def check_output(cmd):
+	process = subprocess.Popen(cmd, stdout = subprocess.PIPE)
+	stdout, stderr = process.communicate()
+	assert not stderr, stderr
+	status = process.poll()
+	assert status == 0, status
+	return stdout
+
 # Get the version of 0publish to be tested...
-publish_version_line = subprocess.check_output(['0publish', '--version']).decode('utf-8').split('\n', 1)[0]
+publish_version_line = check_output(['0publish', '--version']).decode('utf-8').split('\n', 1)[0]
 publish_version = publish_version_line.rsplit(' ', 1)[1]
 publish_uri = 'http://0install.net/2006/interfaces/0publish'
 
