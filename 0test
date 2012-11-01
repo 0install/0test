@@ -104,7 +104,10 @@ except SafeException, ex:
 	except:
 		print >>sys.stderr, repr(ex)
 	sys.exit(1)
-
+except KeyboardInterrupt as ex:
+	if options.verbose: raise
+	print >>sys.stderr, "Interrupted"
+	sys.exit(1)
 
 if results.by_status['failed']:
 	sys.exit(1)
