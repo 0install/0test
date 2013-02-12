@@ -6,19 +6,12 @@ from zeroinstall.injector import driver, model, run, requirements
 from zeroinstall.support import tasks
 from reporting import format_combo
 
-class VersionRestriction(model.Restriction):
-	def __init__(self, version):
-		self.version = version
-
-	def meets_restriction(self, impl):
-		return impl.get_version() == self.version
-
-	def __repr__(self):
-		return "version = %s" % self.version
-
 class NonlocalRestriction(model.Restriction):
 	def meets_restriction(self, impl):
 		return impl.local_path is None
+
+	def __str__(self):
+		return "nonlocal"
 
 def run_tests(config, tested_iface, sels, spec):
 	def _get_implementation_path(impl):
@@ -126,8 +119,7 @@ def run_test_combinations(config, spec):
 					raise model.SafeException("Low version >= high version in %s!" % version)
 				restrictions[iface] = [model.VersionRangeRestriction(before, not_before)]
 			else:
-				model.parse_version(version)	# Check format
-				restrictions[iface] = [VersionRestriction(version)]
+				restrictions[iface] = [model.VersionRestriction(model.parse_version(version))]
 			key.add((uri, version))
 
 		solver.extra_restrictions = restrictions
