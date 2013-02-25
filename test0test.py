@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import tempfile, os, subprocess
+import tempfile, os, subprocess, sys
 import unittest
 from zeroinstall.support import ro_rmtree, basedir
 from zeroinstall.zerostore import Stores
@@ -27,7 +27,7 @@ if 'DISPLAY' in os.environ:
 	del os.environ['DISPLAY']
 
 def test(*args, **kwargs):
-	run(*([test_bin] + list(args)), **kwargs)
+	run(*([sys.executable, test_bin] + list(args)), **kwargs)
 
 def run(*args, **kwargs):
 	child = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
