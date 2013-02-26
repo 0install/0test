@@ -119,7 +119,7 @@ def run_test_combinations(config, spec):
 					raise model.SafeException("Low version >= high version in %s!" % version)
 				restrictions[iface] = [model.VersionRangeRestriction(before, not_before)]
 			else:
-				restrictions[iface] = [model.VersionRestriction(model.parse_version(version))]
+				restrictions[iface] = [model.VersionExpressionRestriction(version)]
 			key.add((uri, version))
 
 		solver.extra_restrictions = restrictions

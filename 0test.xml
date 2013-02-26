@@ -38,7 +38,7 @@ create a matrix of test results.</description>
     </command>
     <implementation id="." version="0.8-post"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
-      <version not-before="1.8"/>
+      <version not-before="1.13"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
     </requires>
   </group>
