@@ -31,7 +31,8 @@ create a matrix of test results.</description>
 	<version before="3"/>
       </runner>
       <requires interface="http://0install.net/2006/interfaces/0publish">
-	<version before="0.21-post" not-before="0.21"/>
+	<!-- (we just need to make sure it's not a snapshot version) -->
+	<version before="0.23-post" not-before="0.23"/>
 	<executable-in-path name="0publish"/>
       </requires>
     </command>
