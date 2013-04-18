@@ -67,7 +67,7 @@ try:
 	if options.offline:
 		config.network_use = model.network_offline
 
-	spec = test_spec.parse_arguments(options, args)
+	spec = test_spec.parse_arguments(config, options, args)
 
 	if options.html and len(spec.test_ifaces) < 2:
 		print >>sys.stderr, "Need versions for at least two interfaces for --html mode."

@@ -27,7 +27,7 @@ class TestSpec:
 				combo[ifaces[0]] = version
 				yield combo.copy()
 
-def parse_arguments(options, args):
+def parse_arguments(config, options, args):
 	spec = TestSpec()
 
 	if '--' in args:
@@ -55,6 +55,27 @@ def parse_arguments(options, args):
 		logging.info("Test command is None")
 
 	iface = None
+
+	# Check if we've been given an app name
+	app = config.app_mgr.lookup_app(args[0], missing_ok = True)
+	if app is not None:
+		# Yes. Get the URI from the app's requirements.
+		r = app.get_requirements()
+		iface = r.interface_uri
+		args = args[1:]
+		spec.test_ifaces.append(iface)
+
+		if not args:
+			# If the user didn't specify any versions, make sure we use the app's
+			# current selections.
+			sels = app.get_selections()
+			for iface, impl in sels.selections.items():
+				spec.test_matrix[iface] = [impl.version]
+				if iface != r.interface_uri:
+					spec.test_ifaces.append(iface)
+		else:
+			spec.test_matrix[iface] = []
+
 	for x in args:
 		if (x[0].isdigit() or x[0] in ',%.!') and iface and '/' not in x:
 			spec.test_matrix[iface].append(x)
