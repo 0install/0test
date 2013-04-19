@@ -2,7 +2,7 @@
 # Copyright (C) 2010, Thomas Leonard
 # Visit http://0install.net for details.
 
-import os, traceback, sys
+import os, sys
 from optparse import OptionParser
 
 zi = os.environ.get("0TEST_ZEROINSTALL", None)
@@ -11,7 +11,8 @@ if zi is not None:
 # (else using distro version)
 
 from zeroinstall import SafeException
-from zeroinstall.injector import model, handler, policy
+from zeroinstall.injector import model, handler
+from zeroinstall.injector.config import load_config
 
 import test_spec, runner, reporting
 
@@ -62,7 +63,7 @@ try:
 		h = handler.ConsoleHandler()
 	else:
 		h = handler.Handler()
-	config = policy.load_config(handler = h)
+	config = load_config(handler = h)
 
 	if options.offline:
 		config.network_use = model.network_offline
