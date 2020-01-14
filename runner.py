@@ -33,7 +33,7 @@ def run_tests(config, tested_iface, sels, spec):
 			test_main = "/"
 	else:
 		if main_command is None:
-			print >>sys.stderr, "No <command> requested and no test command either!"
+			print("No <command> requested and no test command either!", file=sys.stderr)
 			return "skipped"
 
 		test_main = None
@@ -43,7 +43,7 @@ def run_tests(config, tested_iface, sels, spec):
 		else:
 			main_abs = os.path.join(_get_implementation_path(root_impl), main_command.path)
 			if not os.path.exists(main_abs):
-				print >>sys.stderr, "Test executable does not exist:", main_abs
+				print("Test executable does not exist:", main_abs, file=sys.stderr)
 				return "skipped"
 
 			tests_dir = os.path.dirname(main_abs)
@@ -53,7 +53,7 @@ def run_tests(config, tested_iface, sels, spec):
 		# We are the parent
 		pid, status = os.waitpid(child, 0)
 		assert pid == child
-		print "Status:", hex(status)
+		print("Status:", hex(status))
 		if status == 0:
 			return "passed"
 		else:
@@ -66,11 +66,11 @@ def run_tests(config, tested_iface, sels, spec):
 					os.chdir(tests_dir)
 				run.execute_selections(sels, spec.test_args, main = test_main, wrapper = spec.test_wrapper)
 				os._exit(0)
-			except model.SafeException, ex:
+			except model.SafeException as ex:
 				try:
-					print >>sys.stderr, unicode(ex)
+					print(str(ex), file=sys.stderr)
 				except:
-					print >>sys.stderr, repr(ex)
+					print(repr(ex), file=sys.stderr)
 			except:
 				import traceback
 				traceback.print_exc()
@@ -104,7 +104,7 @@ def run_test_combinations(config, spec):
 		key = set()
 		restrictions = {}
 		selections = {}
-		for (uri, version) in combo.iteritems():
+		for (uri, version) in combo.items():
 			iface = config.iface_cache.get_interface(uri)
 			selections[iface] = version
 
@@ -128,7 +128,7 @@ def run_test_combinations(config, spec):
 		if not solver.ready:
 			logging.info("Can't select combination %s: %s", combo, solver.get_failure_reason())
 			result = 'skipped'
-			for uri, impl in solver.selections.iteritems():
+			for uri, impl in solver.selections.items():
 				if impl is None:
 					selections[uri] = selections.get(uri, None) or '?'
 				else:
@@ -137,7 +137,7 @@ def run_test_combinations(config, spec):
 				selections = solver.get_failure_reason()
 		else:
 			selections = {}
-			for iface, impl in solver.selections.iteritems():
+			for iface, impl in solver.selections.items():
 				if impl:
 					version = impl.get_version()
 				else:
@@ -147,7 +147,7 @@ def run_test_combinations(config, spec):
 			if download:
 				config.handler.wait_for_blocker(download)
 
-			print format_combo(selections)
+			print(format_combo(selections))
 
 			result = run_tests(config, tested_iface, solver.selections, spec)
 

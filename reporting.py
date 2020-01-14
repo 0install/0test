@@ -5,24 +5,24 @@ from zeroinstall.injector import iface_cache
 
 def format_combo(combo):
 	this_combo = []
-	for iface, version in combo.iteritems():
+	for iface, version in combo.items():
 		this_combo.append("%s v%s" % (iface.get_name(), version))
 	return ', '.join(this_combo)
 
 def print_summary(results):
-	print "\nSUMMARY:\n"
+	print("\nSUMMARY:\n")
 
 	for label in ["passed", "skipped", "failed"]:
 		results_for_status = results.by_status[label]
 		if not results_for_status:
-			print "None", label
+			print("None", label)
 		else:
-			print label.capitalize()
+			print(label.capitalize())
 			for combo in results_for_status:
 				if isinstance(combo, Exception):
-					print " - " + unicode(combo)
+					print(" - " + str(combo))
 				else:
-					print " - " + format_combo(combo)
+					print(" - " + format_combo(combo))
 
 def format_html(results):
 	spec = results.spec
@@ -78,8 +78,8 @@ def format_html(results):
 	root.appendChild(body)
 
 	for outer_combo in spec.get_combos(spec.test_ifaces[:-2]):
-		outer_key = frozenset(outer_combo.items())
-		outers = [(iface_cache.iface_cache.get_feed(uri).get_name() + " " + version) for (uri, version) in outer_combo.iteritems()]
+		outer_key = frozenset(list(outer_combo.items()))
+		outers = [(iface_cache.iface_cache.get_feed(uri).get_name() + " " + version) for (uri, version) in outer_combo.items()]
 
 		heading = doc.createElement('h1')
 		heading.appendChild(doc.createTextNode(', '.join(outers) or 'Results'))
@@ -133,7 +133,7 @@ def format_html(results):
 
 				other_ifaces = []
 				combo_ifaces = set(uri for (uri, version) in key)
-				for iface, version in selections.iteritems():
+				for iface, version in selections.items():
 					if iface.uri not in combo_ifaces:
 						other_ifaces.append((iface.get_name(), version))
 				if other_ifaces:

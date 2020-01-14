@@ -69,7 +69,7 @@ def parse_arguments(config, options, args):
 			# If the user didn't specify any versions, make sure we use the app's
 			# current selections.
 			sels = app.get_selections(may_update = True)
-			for iface, impl in sels.selections.items():
+			for iface, impl in list(sels.selections.items()):
 				spec.test_matrix[iface] = [impl.version]
 				if iface != r.interface_uri:
 					spec.test_ifaces.append(iface)
