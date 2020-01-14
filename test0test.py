@@ -4,6 +4,11 @@ import unittest
 from zeroinstall.support import ro_rmtree, basedir
 from zeroinstall.zerostore import Stores
 
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    import imp
+
 stores = Stores()
 
 my_dir = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +37,7 @@ def test(*args, **kwargs):
 def run(*args, **kwargs):
 	child = subprocess.Popen(args, stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
 	got, unused = child.communicate()
+	got = got.decode()
 
 	expected = kwargs.get('expect', '')
 	if expected:
@@ -55,7 +61,7 @@ class Test0Test(unittest.TestCase):
 		self.tmpdir = tempfile.mkdtemp(prefix = '0test-test-')
 
 		os.environ['HOME'] = self.tmpdir
-		reload(basedir)
+		imp.reload(basedir)
 
 		config_dir = basedir.save_config_path('0install.net', 'injector')
 		stream = open(os.path.join(config_dir, 'implementation-dirs'), 'w')
