@@ -22,16 +22,16 @@ create a matrix of test results.</description>
 
   <group license="OSI Approved :: GNU General Public License v2" main="0test">
     <command name="run" path="0test">
-      <runner interface="https://apps.0install.net/python/python.xml" version='3..'/>
+      <runner interface="https://apps.0install.net/python/python.xml" version="3.."/>
     </command>
     <command name="test" path="test0test.py">
-      <runner interface="https://apps.0install.net/python/python.xml" version='3..'/>
-      <requires interface="http://0install.net/2006/interfaces/0publish" version='0.26'>
+      <runner interface="https://apps.0install.net/python/python.xml" version="3.."/>
+      <requires interface="http://0install.net/2006/interfaces/0publish" version="0.26">
 	<!-- (we just need to make sure it's not a snapshot version) -->
 	<executable-in-path name="0publish"/>
       </requires>
     </command>
-    <implementation id="." version="0.9-post"/>
+    <implementation id="." released="2020-01-15" version="0.10"/>
     <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
       <version not-before="2.3.7"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>

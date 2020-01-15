@@ -16,7 +16,7 @@ from zeroinstall.injector.config import load_config
 
 import test_spec, runner, reporting
 
-version = '0.9'
+version = '0.10'
 
 parser = OptionParser(usage="usage: %prog [INTERFACE VERSION ...] ... [-- ARGS]\n\n"
 		"For example, to test two versions of 0compile against two versions of Zero Install:\n\n"
