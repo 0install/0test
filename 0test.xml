@@ -9,9 +9,9 @@ test released versions or developer snapshots. You can give a selection of
 versions to test, and you can test against different versions of dependencies to
 create a matrix of test results.</description>
 
-  <homepage>http://0install.net/0test.html</homepage>
+  <homepage>https://docs.0install.net/tools/0test/</homepage>
 
-  <feed-for interface="http://0install.net/2008/interfaces/0test.xml"/>
+  <feed-for interface="https://apps.0install.net/0install/0test.xml"/>
 
   <release:management xmlns:release="http://zero-install.sourceforge.net/2007/namespaces/0release">
     <!-- Update the copy of the version number -->
@@ -26,13 +26,13 @@ create a matrix of test results.</description>
     </command>
     <command name="test" path="test0test.py">
       <runner interface="https://apps.0install.net/python/python.xml" version="3.."/>
-      <requires interface="http://0install.net/2006/interfaces/0publish" version="0.26">
+      <requires interface="https://apps.0install.net/0install/0publish.xml" version="0.26">
 	<!-- (we just need to make sure it's not a snapshot version) -->
 	<executable-in-path name="0publish"/>
       </requires>
     </command>
     <implementation id="." version="0.10-post"/>
-    <requires interface="http://0install.net/2007/interfaces/ZeroInstall.xml">
+    <requires interface="https://apps.0install.net/0install/0install-python.xml">
       <version not-before="2.3.7"/>
       <environment insert="" mode="replace" name="0TEST_ZEROINSTALL"/>
     </requires>
